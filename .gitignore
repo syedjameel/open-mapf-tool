@@ -1,0 +1,8 @@
+/build
+/.vscode
+*.o
+*.log
+*.DS_Store
+*.swp
+/vendor/imgui
+/algorithms/
