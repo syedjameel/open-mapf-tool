@@ -77,11 +77,14 @@ void AnimationController::update(float deltaTime)
                 }
             }
             
-            if (!anyRemaining && m_currentTimeStep >= m_maxTimeStep)
+            if (!anyRemaining && m_currentTimeStep >= m_maxTimeStep) {
                 m_animate = false;
+                reset();
+            }
         }
         else {
             m_animate = false;
+            reset();
         }
     }
 }

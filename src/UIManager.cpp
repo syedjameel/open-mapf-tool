@@ -92,8 +92,8 @@ void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_po
     const auto& paths = m_pathManager.getPaths();
     const auto& pathIndices = m_animController.getPathIndices();
     
-    // Draw goal markers (if paths are loaded)
-    if (!paths.empty())
+    // Draw goal markers (if paths are loaded and not in Add/Remove Agents mode)
+    if (!paths.empty() && !m_addRemoveAgents)
     {
         for (size_t i = 0; i < paths.size(); ++i)
         {
@@ -218,8 +218,8 @@ void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_po
         renderDynamicAgents(draw_list, origin, zoom);
     }
     
-    // Draw animated agents
-    if (m_animController.isAnimating() || !m_pathManager.getPaths().empty())
+    // Draw animated agents (but not when in Add/Remove Agents mode)
+    if ((m_animController.isAnimating() || !m_pathManager.getPaths().empty()) && !m_addRemoveAgents)
     {
         const auto& paths = m_pathManager.getPaths();
         const auto& pathIndices = m_animController.getPathIndices();
@@ -364,9 +364,25 @@ void UIManager::renderMapTab()
     }
     
     ImGui::Separator();
-    ImGui::Checkbox("Add/Remove Obstacles", &m_addRemoveObstacles);
+    if (ImGui::Checkbox("Add/Remove Obstacles", &m_addRemoveObstacles))
+    {
+        if (m_addRemoveObstacles)
+        {
+            m_addRemoveAgents = false;
+        }
+    }
     
-    ImGui::Checkbox("Add/Remove Agents", &m_addRemoveAgents);
+    if (ImGui::Checkbox("Add/Remove Agents", &m_addRemoveAgents))
+    {
+        if (m_addRemoveAgents)
+        {
+            m_addRemoveObstacles = false;
+            // Clear animation data when entering Add/Remove Agents mode
+            // This ensures no stale paths remain from previous algorithm runs
+            m_pathManager.clear();
+            m_animController.reset();
+        }
+    }
     
     ImGui::Text("Agents: %zu", m_dynamicAgents.size());
     size_t agentsWithGoals = 0;
@@ -766,6 +782,11 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
             {
                 m_pendingAgentIndex--;
             }
+            // Reassign IDs to maintain ID = array index consistency
+            reassignAgentIDs();
+            // Clear animation data to remove stale paths/goals
+            m_pathManager.clear();
+            m_animController.reset();
             return;
         }
         
@@ -791,6 +812,11 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
             // Remove this agent (clicking on same cell)
             m_dynamicAgents.erase(m_dynamicAgents.begin() + m_pendingAgentIndex);
             m_pendingAgentIndex = SIZE_MAX;
+            // Reassign IDs to maintain ID = array index consistency
+            reassignAgentIDs();
+            // Clear animation data to remove stale paths/goals
+            m_pathManager.clear();
+            m_animController.reset();
             return;
         }
         
@@ -802,7 +828,9 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
     else
     {
         // Create new agent at clicked position
-        Agent newAgent(m_nextAgentId++, clickedPos);
+        // ID will be set by array position to maintain consistency
+        size_t newId = m_dynamicAgents.size();
+        Agent newAgent(newId, clickedPos);
         m_dynamicAgents.push_back(newAgent);
         m_pendingAgentIndex = m_dynamicAgents.size() - 1;
     }
@@ -1026,6 +1054,7 @@ void UIManager::reassignAgentIDs()
     // Update m_nextAgentId to be the next available ID
     m_nextAgentId = m_dynamicAgents.size();
 }
+
 
 void UIManager::renderResultsTab()
 {
