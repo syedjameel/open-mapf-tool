@@ -58,7 +58,9 @@ public:
                     const Environment &env,
                     const CBSParameters &params,
                     const std::string &mapName,
-                    std::function<void(const CBSResults &)> callback);
+                    std::function<void(const CBSResults &)> callback,
+                    const std::string &tempDir = "",
+                    std::function<void(const std::string &)> tempFileCallback = nullptr);
 
     // Status checking
     bool isRunning() const { return m_isRunning.load(); }
@@ -73,6 +75,8 @@ private:
     std::thread m_solverThread;
     CBSResults m_results;
     std::string m_currentMapName;
+    std::string m_tempDir;
+    std::function<void(const std::string &)> m_tempFileCallback;
 
     // File generation methods
     void generateMapFile(const Environment &env, const std::string &filename);
@@ -82,7 +86,9 @@ private:
     void executeCBS(const std::vector<Agent> &agents,
                     const Environment &env,
                     const CBSParameters &params,
-                    const std::string &mapName);
+                    const std::string &mapName,
+                    const std::string &tempDir,
+                    std::function<void(const std::string &)> tempFileCallback);
 
     // Result parsing
     bool parseResults(const std::string &csvFile);

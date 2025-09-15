@@ -342,10 +342,16 @@ void UIManager::renderControlPanel()
         renderSaveScenarioDialog();
     }
     
-    // CBS dialogs
-    renderCBSParametersDialog();
-    renderCBSProgressDialog();
-    renderCBSResultsDialog();
+    // Algorithm parameter dialogs
+    if (m_selectedAlgo == 0) {
+        renderCBSParametersDialog();
+        renderCBSProgressDialog();
+        renderCBSResultsDialog();
+    } else if (m_selectedAlgo >= 1 && m_selectedAlgo <= 3) {
+        renderLacamParametersDialog();
+        renderLacamProgressDialog();
+        renderLacamResultsDialog();
+    }
     
 }
 
@@ -361,6 +367,11 @@ void UIManager::renderMapTab()
     if (ImGui::Button("Remove Map"))
     {
         m_env.m_grid = Grid<int>(m_env.m_cols, m_env.m_rows, 0);
+    }
+    
+    if (ImGui::Button("Clean Temp Files"))
+    {
+        cleanupTempFiles();
     }
     
     ImGui::Separator();
@@ -407,6 +418,8 @@ void UIManager::renderMapTab()
                 m_pendingAgentIndex = SIZE_MAX;
                 m_pathManager.clear();
                 m_animController.reset();
+                // Clean up temporary files when clearing agents
+                cleanupTempFiles();
             }
         }
         
@@ -467,40 +480,83 @@ void UIManager::renderAlgorithmTab()
     if (agentsWithGoals == 0) {
         ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Add agents with goals to enable solving");
     } else {
-        if (m_cbsRunning) {
-            if (ImGui::Button("Cancel CBS")) {
-                m_cbsDriver.cancel();
-                m_cbsRunning = false;
-                m_showProgressDialog = false;
+        // Handle CBS algorithm
+        if (m_selectedAlgo == 0) {  // CBS
+            if (m_cbsRunning) {
+                if (ImGui::Button("Cancel CBS")) {
+                    m_cbsDriver.cancel();
+                    m_cbsRunning = false;
+                    m_showProgressDialog = false;
+                }
+                if (m_showProgressDialog) {
+                    renderCBSProgressDialog();
+                }
+            } else {
+                if (ImGui::Button("Solve with CBS")) {
+                    startCBSSolver();
+                }
             }
-            if (m_showProgressDialog) {
-                renderCBSProgressDialog();
-            }
-        } else {
-            if (ImGui::Button("Solve with CBS")) {
-                startCBSSolver();
+        }
+        // Handle LaCAM algorithms
+        else if (m_selectedAlgo >= 1 && m_selectedAlgo <= 3) {  // LaCAM, LaCAM2, LaCAM3
+            if (m_lacamRunning) {
+                std::string cancelButton = "Cancel " + m_algoNames[m_selectedAlgo];
+                if (ImGui::Button(cancelButton.c_str())) {
+                    // Cancel the appropriate LaCAM variant
+                    if (m_selectedAlgo == 1) m_lacamDriver.cancel();
+                    else if (m_selectedAlgo == 2) m_lacam2Driver.cancel();
+                    else if (m_selectedAlgo == 3) m_lacam3Driver.cancel();
+                    m_lacamRunning = false;
+                    m_showProgressDialog = false;
+                }
+                if (m_showProgressDialog) {
+                    renderLacamProgressDialog();
+                }
+            } else {
+                std::string solveButton = "Solve with " + m_algoNames[m_selectedAlgo];
+                if (ImGui::Button(solveButton.c_str())) {
+                    startLacamSolver();
+                }
             }
         }
     }
-    
+
     // Show results directly in Algorithm tab
-    if (m_cbsResults.solutionFound || !m_cbsResults.errorMessage.empty()) {
+    if (m_selectedAlgo == 0 && (m_cbsResults.solutionFound || !m_cbsResults.errorMessage.empty())) {
         ImGui::Separator();
         ImGui::Text("CBS Results:");
-        
+
         if (m_cbsResults.solutionFound) {
             ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Solution Found!");
             ImGui::Text("Solution Cost: %d", m_cbsResults.solutionCost);
             ImGui::Text("Runtime: %.6f seconds", m_cbsResults.runtime);
             ImGui::Text("High Level Nodes: %d", m_cbsResults.highLevelNodes);
             ImGui::Text("Low Level Nodes: %d", m_cbsResults.lowLevelNodes);
-            
+
             if (!m_cbsResults.pathsFile.empty()) {
                 ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Paths loaded for visualization");
             }
         } else if (!m_cbsResults.errorMessage.empty()) {
             ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "✗ Error:");
             ImGui::TextWrapped("%s", m_cbsResults.errorMessage.c_str());
+        }
+    } else if (m_selectedAlgo >= 1 && m_selectedAlgo <= 3 && (m_lacamResults.solutionFound || !m_lacamResults.errorMessage.empty())) {
+        ImGui::Separator();
+        ImGui::Text("%s Results:", m_algoNames[m_selectedAlgo].c_str());
+
+        if (m_lacamResults.solutionFound) {
+            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Solution Found!");
+            ImGui::Text("Sum of Costs: %d (LB: %d)", m_lacamResults.solutionCost, m_lacamResults.socLowerBound);
+            ImGui::Text("Makespan: %d (LB: %d)", m_lacamResults.makespan, m_lacamResults.makespanLowerBound);
+            ImGui::Text("Runtime: %.6f seconds", m_lacamResults.runtime);
+            ImGui::Text("Number of Agents: %d", m_lacamResults.numAgents);
+
+            if (!m_lacamResults.pathsFile.empty()) {
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Paths loaded for visualization");
+            }
+        } else if (!m_lacamResults.errorMessage.empty()) {
+            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "✗ Error:");
+            ImGui::TextWrapped("%s", m_lacamResults.errorMessage.c_str());
         }
     }
 }
@@ -680,6 +736,8 @@ void UIManager::handleFileDialogs()
             m_env.loadMap(path);
             m_recentFiles.push_back(path);
             m_currentMapPath = path;
+            // Clean up temporary files when loading new map
+            cleanupTempFiles();
             
             // Extract map name from path for scenario saving
             size_t lastSlash = path.find_last_of("/\\");
@@ -954,12 +1012,45 @@ void UIManager::renderSaveScenarioDialog()
         
         ImGui::Separator();
         
+        // Option for temporary vs permanent files
+        ImGui::Checkbox("Use temporary files (auto-cleanup)", &m_useTemporaryFiles);
+        ImGui::Text("Temporary files are cleaned up automatically when:");
+        ImGui::BulletText("Program exits");
+        ImGui::BulletText("Clear Agents is pressed");
+        ImGui::BulletText("New map is loaded");
+        
+        ImGui::Separator();
+        
         if (ImGui::Button("Save Map + Scenario", ImVec2(200, 0)))
         {
             try
             {
-                saveMapFile(m_currentMapName + ".map");
-                saveScenarioFile(m_currentMapName + ".scen");
+                std::string mapFile, scenFile;
+                
+                if (m_useTemporaryFiles)
+                {
+                    // Use temporary files in temp directory
+                    std::string tempDir = getTempDirectory();
+                    auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now().time_since_epoch()).count();
+                    std::string prefix = tempDir + "/" + m_currentMapName + "_" + std::to_string(timestamp);
+                    
+                    mapFile = prefix + ".map";
+                    scenFile = prefix + ".scen";
+                    
+                    // Track temp files for cleanup
+                    addTempFile(mapFile);
+                    addTempFile(scenFile);
+                }
+                else
+                {
+                    // Use permanent files in current directory
+                    mapFile = m_currentMapName + ".map";
+                    scenFile = m_currentMapName + ".scen";
+                }
+                
+                saveMapFile(mapFile);
+                saveScenarioFile(scenFile);
                 m_showSaveScenarioDialog = false;
                 ImGui::CloseCurrentPopup();
                 
@@ -968,6 +1059,12 @@ void UIManager::renderSaveScenarioDialog()
                     m_startCBSAfterSave = false;
                     // Call startCBSSolver recursively, but now m_currentMapName is set
                     startCBSSolver();
+                }
+                // If LaCAM was requested, start it now
+                if (m_startLacamAfterSave) {
+                    m_startLacamAfterSave = false;
+                    // Call startLacamSolver recursively, but now m_currentMapName is set
+                    startLacamSolver();
                 }
             }
             catch (const std::exception& e)
@@ -1116,9 +1213,15 @@ void UIManager::startCBSSolver()
     m_cbsStartTime = std::chrono::steady_clock::now();
     m_cbsResults = CBSResults(); // Reset results
     
+    // Use temp directory and register temp files for cleanup
+    std::string tempDir = getTempDirectory();
     m_cbsDriver.solveAsync(m_dynamicAgents, m_env, m_cbsParams, m_currentMapName,
                           [this](const CBSResults& results) {
                               this->onCBSComplete(results);
+                          },
+                          tempDir,
+                          [this](const std::string& filename) {
+                              this->addTempFile(filename);
                           });
 }
 
@@ -1141,8 +1244,8 @@ void UIManager::onCBSComplete(const CBSResults& results)
             
             // Initialize animation controller (same as existing mechanism)
             m_animController.start(m_pathManager.getPaths());
-            m_animController.setAnimating(false);
-            
+            m_animController.setAnimating(true);  // Start animation automatically
+
             // Exit Add/Remove Agents mode to ensure clean visualization
             m_addRemoveAgents = false;
             
@@ -1316,5 +1419,331 @@ void UIManager::renderCBSResultsDialog()
         
         ImGui::EndPopup();
     }
+}
+
+// Destructor - cleanup temporary files
+UIManager::~UIManager()
+{
+    cleanupTempFiles();
+}
+
+// Temporary file management implementation
+std::string UIManager::getTempDirectory()
+{
+    if (m_tempDirPath.empty())
+    {
+        m_tempDirPath = "temp";
+    }
+    
+    // Always ensure temp directory exists when requested
+    if (!std::filesystem::exists(m_tempDirPath))
+    {
+        createTempDirectory();
+    }
+    
+    return m_tempDirPath;
+}
+
+bool UIManager::createTempDirectory()
+{
+    try
+    {
+        std::filesystem::create_directories(m_tempDirPath);
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Failed to create temp directory: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+void UIManager::addTempFile(const std::string& filename)
+{
+    m_tempFiles.push_back(filename);
+}
+
+void UIManager::cleanupTempFiles()
+{
+    // Clean up tracked temp files
+    for (const auto& file : m_tempFiles)
+    {
+        try
+        {
+            if (std::filesystem::exists(file))
+            {
+                std::filesystem::remove(file);
+                std::cout << "Cleaned up temp file: " << file << std::endl;
+            }
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "Failed to delete temp file " << file << ": " << e.what() << std::endl;
+        }
+    }
+    m_tempFiles.clear();
+    
+    // Also clean up any orphaned temp files from previous runs
+    // Look for pattern: *_[timestamp].{map,scen,csv,txt} in current directory
+    try
+    {
+        for (const auto& entry : std::filesystem::directory_iterator("."))
+        {
+            if (entry.is_regular_file())
+            {
+                std::string filename = entry.path().filename().string();
+                
+                // Check if it matches the pattern: name_timestamp.extension
+                if (filename.find("_") != std::string::npos)
+                {
+                    std::string ext = entry.path().extension().string();
+                    if (ext == ".map" || ext == ".scen" || ext == ".csv" || ext == ".txt")
+                    {
+                        // Check if the part after _ is all digits (timestamp)
+                        size_t underscorePos = filename.find_last_of("_");
+                        size_t dotPos = filename.find_last_of(".");
+                        if (underscorePos != std::string::npos && dotPos != std::string::npos && 
+                            underscorePos < dotPos)
+                        {
+                            std::string timestampPart = filename.substr(underscorePos + 1, dotPos - underscorePos - 1);
+                            if (std::all_of(timestampPart.begin(), timestampPart.end(), ::isdigit))
+                            {
+                                std::filesystem::remove(entry.path());
+                                std::cout << "Cleaned up orphaned temp file: " << filename << std::endl;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Failed to clean orphaned temp files: " << e.what() << std::endl;
+    }
+    
+    // Keep temp directory available (don't remove it)
+    // This ensures CBS can always create files when needed
+    try
+    {
+        if (!m_tempDirPath.empty() && !std::filesystem::exists(m_tempDirPath))
+        {
+            std::filesystem::create_directories(m_tempDirPath);
+            std::cout << "Recreated temp directory: " << m_tempDirPath << std::endl;
+        }
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Failed to recreate temp directory: " << e.what() << std::endl;
+    }
+}
+
+// LaCAM Methods Implementation
+void UIManager::startLacamSolver()
+{
+    // If already running, don't start another instance
+    if (m_lacamRunning) {
+        return;
+    }
+
+    // Check if we have dynamic agents with goals
+    size_t agentsWithGoals = 0;
+    for (const auto& agent : m_dynamicAgents) {
+        if (agent.hasGoal) {
+            agentsWithGoals++;
+        }
+    }
+
+    if (agentsWithGoals == 0) {
+        return;
+    }
+
+    // If no map name set, prompt for one
+    if (m_currentMapName.empty()) {
+        m_startLacamAfterSave = true;
+        m_showMapNameDialog = true;
+        return;
+    }
+
+    m_lacamRunning = true;
+    m_showProgressDialog = true;
+    m_lacamStartTime = std::chrono::steady_clock::now();
+
+    // Select the appropriate driver based on selected algorithm
+    LacamDriverBase* driver = nullptr;
+    if (m_selectedAlgo == 1) {
+        driver = &m_lacamDriver;
+    } else if (m_selectedAlgo == 2) {
+        driver = &m_lacam2Driver;
+    } else if (m_selectedAlgo == 3) {
+        driver = &m_lacam3Driver;
+    } else {
+        m_lacamRunning = false;
+        return;
+    }
+
+    // Use temp directory and register temp files for cleanup
+    std::string tempDir = getTempDirectory();
+    driver->solveAsync(m_dynamicAgents, m_env, m_lacamParams, m_currentMapName,
+                       [this](const LacamResults& results) {
+                           this->onLacamComplete(results);
+                       },
+                       tempDir,
+                       [this](const std::string& filename) {
+                           this->addTempFile(filename);
+                       });
+}
+
+void UIManager::onLacamComplete(const LacamResults& results)
+{
+    // Make sure we're still expecting results (avoid race conditions)
+    if (!m_lacamRunning) {
+        return;
+    }
+
+    m_lacamRunning = false;
+    m_showProgressDialog = false;
+    m_lacamResults = results;
+
+    // If solution found, load the paths
+    if (results.solutionFound && !results.pathsFile.empty()) {
+        try {
+            // Load paths for visualization
+            // Pass true for lacamFormat to prevent coordinate swapping since we already handle it
+            m_pathManager.loadPaths(results.pathsFile, true);  // Already in correct format after conversion
+
+            // Start animation
+            m_animController.start(m_pathManager.getPaths());
+            m_animController.setAnimating(true);  // Make sure animation actually starts
+
+            // Exit Add/Remove Agents mode to show animated agents
+            m_addRemoveAgents = false;
+
+            std::cout << "[" << m_algoNames[m_selectedAlgo] << "] Solution found! Cost: "
+                     << results.solutionCost << ", Makespan: " << results.makespan
+                     << ", Runtime: " << results.runtime << "s" << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "[" << m_algoNames[m_selectedAlgo] << "] Failed to load paths: "
+                     << e.what() << std::endl;
+            m_lacamResults.errorMessage = "Solution found but failed to load paths: "
+                                        + std::string(e.what());
+        }
+    } else {
+        std::cerr << "[" << m_algoNames[m_selectedAlgo] << "] No solution found or error: "
+                 << results.errorMessage << std::endl;
+    }
+}
+
+void UIManager::renderLacamParametersDialog()
+{
+    if (!m_showAlgoParams) return;
+    if (m_selectedAlgo < 1 || m_selectedAlgo > 3) return;  // Only for LaCAM algorithms
+
+    std::string popupTitle = m_algoNames[m_selectedAlgo] + " Parameters";
+    ImGui::OpenPopup(popupTitle.c_str());
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+    if (ImGui::BeginPopupModal(popupTitle.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::Text("Configure %s parameters:", m_algoNames[m_selectedAlgo].c_str());
+        ImGui::Separator();
+
+        // Core parameters
+        ImGui::SliderInt("Time Limit (seconds)", &m_lacamParams.timeLimit, 1, 300);
+        ImGui::SliderInt("Random Seed", &m_lacamParams.seed, 0, 10000);
+
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Random seed for reproducible results");
+
+        ImGui::SliderInt("Verbose Level", &m_lacamParams.verbose, 0, 3);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("0: silent, 1: basic, 2: detailed, 3: debug");
+
+        ImGui::Checkbox("Log Short Format", &m_lacamParams.logShort);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Use short log format for output");
+
+        // Grid configuration (read-only, from environment)
+        ImGui::Separator();
+        ImGui::Text("Grid Configuration:");
+        if (m_env.m_hexagon) {
+            ImGui::Text("  Type: Hexagonal");
+            std::string hexConfig = "odd-row";  // Default
+            switch (m_env.m_hex_grid_type) {
+                case HexGridType::ODD_R: hexConfig = "odd-row"; break;
+                case HexGridType::EVEN_R: hexConfig = "even-row"; break;
+                case HexGridType::ODD_Q: hexConfig = "odd-column"; break;
+                case HexGridType::EVEN_Q: hexConfig = "even-column"; break;
+            }
+            ImGui::Text("  Config: %s", hexConfig.c_str());
+        } else {
+            ImGui::Text("  Type: Square");
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2(120, 0))) {
+            m_showAlgoParams = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+            m_showAlgoParams = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+void UIManager::renderLacamProgressDialog()
+{
+    if (!m_showProgressDialog || !m_lacamRunning) return;
+
+    ImGui::OpenPopup("LaCAM Progress");
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+    if (ImGui::BeginPopupModal("LaCAM Progress", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::Text("%s is running...", m_algoNames[m_selectedAlgo].c_str());
+
+        // Calculate elapsed time
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lacamStartTime).count() / 1000.0f;
+
+        ImGui::Text("Elapsed time: %.2f seconds", elapsed);
+
+        // Progress bar (indeterminate)
+        static float progress = 0.0f;
+        progress += ImGui::GetIO().DeltaTime * 0.2f;
+        if (progress > 1.0f) progress = 0.0f;
+
+        ImGui::ProgressBar(progress, ImVec2(300, 0), "");
+
+        ImGui::Separator();
+
+        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+            // Cancel the appropriate driver
+            if (m_selectedAlgo == 1) m_lacamDriver.cancel();
+            else if (m_selectedAlgo == 2) m_lacam2Driver.cancel();
+            else if (m_selectedAlgo == 3) m_lacam3Driver.cancel();
+
+            m_lacamRunning = false;
+            m_showProgressDialog = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+void UIManager::renderLacamResultsDialog()
+{
+    // Results are shown directly in the Algorithm tab
+    // This method is kept for consistency but not used currently
 }
 

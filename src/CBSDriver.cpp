@@ -20,7 +20,9 @@ void CBSDriver::solveAsync(const std::vector<Agent>& agents,
                           const Environment& env,
                           const CBSParameters& params,
                           const std::string& mapName,
-                          std::function<void(const CBSResults&)> callback) {
+                          std::function<void(const CBSResults&)> callback,
+                          const std::string& tempDir,
+                          std::function<void(const std::string&)> tempFileCallback) {
     if (m_isRunning.load()) {
         return; // Already running
     }
@@ -34,13 +36,17 @@ void CBSDriver::solveAsync(const std::vector<Agent>& agents,
     m_shouldCancel.store(false);
     m_isRunning.store(true);
     
+    // Store temp file management info
+    m_tempDir = tempDir;
+    m_tempFileCallback = tempFileCallback;
+    
     // Launch solver in background thread with high priority
     m_solverThread = std::thread([this, agents, env, params, mapName, callback]() {
         try {
             // Set high priority for solver thread
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
             
-            executeCBS(agents, env, params, mapName);
+            executeCBS(agents, env, params, mapName, m_tempDir, m_tempFileCallback);
             
             if (callback && !m_shouldCancel.load()) {
                 callback(m_results);
@@ -121,7 +127,9 @@ void CBSDriver::generateScenarioFile(const std::vector<Agent>& agents, const std
 void CBSDriver::executeCBS(const std::vector<Agent>& agents,
                           const Environment& env,
                           const CBSParameters& params,
-                          const std::string& mapName) {
+                          const std::string& mapName,
+                          const std::string& tempDir,
+                          std::function<void(const std::string&)> tempFileCallback) {
     // Store current map name 
     m_currentMapName = mapName;
     
@@ -145,13 +153,32 @@ void CBSDriver::executeCBS(const std::vector<Agent>& agents,
             std::chrono::steady_clock::now().time_since_epoch()).count();
         std::string uniquePrefix = mapName + "_" + std::to_string(timestamp);
         
-        std::string mapFile = uniquePrefix + ".map";
-        std::string scenFile = uniquePrefix + ".scen";
-        std::string outputFile = uniquePrefix + ".csv";
-        std::string pathsFile = uniquePrefix + ".txt";
+        std::string mapFile, scenFile, outputFile, pathsFile;
+        
+        if (!tempDir.empty()) {
+            // Use temp directory
+            mapFile = tempDir + "/" + uniquePrefix + ".map";
+            scenFile = tempDir + "/" + uniquePrefix + ".scen";
+            outputFile = tempDir + "/" + uniquePrefix + ".csv";
+            pathsFile = tempDir + "/" + uniquePrefix + ".txt";
+        } else {
+            // Use current directory (original behavior)
+            mapFile = uniquePrefix + ".map";
+            scenFile = uniquePrefix + ".scen";
+            outputFile = uniquePrefix + ".csv";
+            pathsFile = uniquePrefix + ".txt";
+        }
         
         generateMapFile(env, mapFile);
         generateScenarioFile(agents, scenFile);
+        
+        // Register temp files for cleanup if callback provided
+        if (tempFileCallback) {
+            tempFileCallback(mapFile);
+            tempFileCallback(scenFile);
+            tempFileCallback(outputFile);
+            tempFileCallback(pathsFile);
+        }
         
         if (m_shouldCancel.load()) return;
         

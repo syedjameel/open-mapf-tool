@@ -7,14 +7,18 @@
 #include "AnimationController.h"
 #include "Types.h"
 #include "CBSDriver.h"
+#include "LacamDriver.h"
 #include <vector>
 #include <string>
 #include <memory>
 #include <chrono>
+#include <filesystem>
+#include <algorithm>
 
 class UIManager {
 public:
     UIManager(Environment& env, PathManager& pathManager, AnimationController& animController);
+    ~UIManager(); // Destructor for cleanup
     
     void setupStyle();
     void setupFileDialogs();
@@ -68,10 +72,10 @@ private:
     AnimationController& m_animController;
     
     // Algorithm selection
-    std::vector<std::string> m_algoNames = {"CBS"};
+    std::vector<std::string> m_algoNames = {"CBS", "LaCAM", "LaCAM2", "LaCAM3"};
     int m_selectedAlgo = 0;
     bool m_showAlgoParams = false;
-    
+
     // CBS integration
     CBSDriver m_cbsDriver;
     CBSParameters m_cbsParams;
@@ -79,11 +83,26 @@ private:
     bool m_cbsRunning = false;
     bool m_startCBSAfterSave = false;
     std::chrono::steady_clock::time_point m_cbsStartTime;
+
+    // LaCAM integration
+    LacamDriver m_lacamDriver;
+    Lacam2Driver m_lacam2Driver;
+    Lacam3Driver m_lacam3Driver;
+    LacamParameters m_lacamParams;
+    LacamResults m_lacamResults;
+    bool m_lacamRunning = false;
+    bool m_startLacamAfterSave = false;
+    std::chrono::steady_clock::time_point m_lacamStartTime;
     
     // Recent files
     std::vector<std::string> m_recentFiles;
     std::string m_currentMapPath;
     std::string m_currentPathFile;
+    
+    // Temporary file management
+    bool m_useTemporaryFiles = false;
+    std::vector<std::string> m_tempFiles;
+    std::string m_tempDirPath;
     
     // UI rendering methods
     void renderMapTab();
@@ -110,6 +129,13 @@ private:
     // CBS methods
     void startCBSSolver();
     void onCBSComplete(const CBSResults& results);
+
+    // LaCAM methods
+    void renderLacamParametersDialog();
+    void renderLacamProgressDialog();
+    void renderLacamResultsDialog();
+    void startLacamSolver();
+    void onLacamComplete(const LacamResults& results);
     
     // File I/O methods
     void saveMapFile(const std::string& filename);
@@ -117,5 +143,11 @@ private:
     
     // Agent ID management
     void reassignAgentIDs();
+    
+    // Temporary file management (private methods)
+    std::string getTempDirectory();
+    void addTempFile(const std::string& filename);
+    bool createTempDirectory();
+    void cleanupTempFiles();
     
 };

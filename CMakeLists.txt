@@ -42,6 +42,7 @@ add_executable(openmapf
     src/ViewportManager.cpp
     src/GridInteractionHandler.cpp
     src/CBSDriver.cpp
+    src/LacamDriver.cpp
 )
 
 target_include_directories(openmapf PRIVATE
