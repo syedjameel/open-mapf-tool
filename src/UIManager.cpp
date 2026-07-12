@@ -82,6 +82,8 @@ void UIManager::setupFileDialogs()
     m_solverExeDialog.SetTitle("Select solver executable");
     m_scenFileDialog.SetTitle("Load Scenario");
     m_scenFileDialog.SetTypeFilters({".scen"});
+    m_experimentFileDialog.SetTitle("Load experiment spec");
+    m_experimentFileDialog.SetTypeFilters({".yaml", ".yml"});
 }
 
 void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_pos, const ImVec2& canvas_size, const ImVec2& origin, float zoom)
@@ -319,6 +321,12 @@ void UIManager::renderControlPanel()
         if (ImGui::BeginTabItem("Solvers"))
         {
             renderSolversTab();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Experiments"))
+        {
+            renderExperimentsTab();
             ImGui::EndTabItem();
         }
         
@@ -1270,6 +1278,140 @@ void UIManager::renderScenLoadDialog()
     }
 }
 
+void UIManager::renderExperimentsTab()
+{
+    ImGui::Spacing();
+    ImGui::TextWrapped(
+        "Batch experiments (spec grammar: docs/experiments.md). The headless "
+        "CLI 'openmapf run <spec.yaml>' is the primary interface; this panel "
+        "is a thin front-end over the same runner.");
+    ImGui::Separator();
+
+    if (ImGui::Button("Load spec..."))
+    {
+        m_experimentFileDialog.Open();
+    }
+    m_experimentFileDialog.Display();
+    if (m_experimentFileDialog.HasSelected())
+    {
+        const std::string path = m_experimentFileDialog.GetSelected().string();
+        try
+        {
+            m_experimentSpec = ExperimentSpec::loadFromFile(path);
+            m_experimentStatus.clear();
+            m_experimentExitCode = -1;
+        }
+        catch (const std::exception& e)
+        {
+            m_experimentSpec.reset();
+            m_experimentStatus = e.what();
+        }
+        m_experimentFileDialog.ClearSelected();
+    }
+
+    if (m_experimentSpec)
+    {
+        const auto& spec = *m_experimentSpec;
+        ImGui::Text("Experiment: %s", spec.name.c_str());
+        ImGui::Text("Matrix: %zu runs   (time limit %ds)", expandMatrix(spec).size(),
+                    spec.timeLimitS);
+        ImGui::Text("Output: %s", spec.outputDir.c_str());
+        ImGui::Checkbox("Resume (skip completed runs)", &m_experimentResume);
+
+        const bool running = m_experimentRunning.load();
+        if (!running && ImGui::Button("Start"))
+        {
+            if (m_experimentThread.joinable())
+            {
+                m_experimentThread.join(); // reap a previously finished run
+            }
+            RunnerOptions opts;
+            opts.resume = m_experimentResume;
+            opts.toolVersion = OPENMAPF_VERSION;
+            m_experimentRunner =
+                std::make_unique<ExperimentRunner>(spec, m_solvers, opts);
+
+            auto errors = m_experimentRunner->validate();
+            if (!errors.empty())
+            {
+                std::string joined;
+                for (const auto& e : errors)
+                {
+                    joined += e + "\n";
+                }
+                m_experimentStatus = joined;
+                m_experimentRunner.reset();
+            }
+            else
+            {
+                {
+                    std::lock_guard<std::mutex> lock(m_experimentProgressMutex);
+                    m_experimentProgress = RunnerProgress{};
+                    m_experimentProgress.total = m_experimentRunner->pendingTasks().size();
+                }
+                m_experimentStatus.clear();
+                m_experimentExitCode = -1;
+                m_experimentRunning.store(true);
+                ExperimentRunner* runner = m_experimentRunner.get();
+                m_experimentThread = std::thread([this, runner]() {
+                    const int rc = runner->run([this](const RunnerProgress& p) {
+                        std::lock_guard<std::mutex> lock(m_experimentProgressMutex);
+                        m_experimentProgress = p;
+                    });
+                    m_experimentExitCode = rc;
+                    m_experimentRunning.store(false);
+                });
+            }
+        }
+        if (running)
+        {
+            ImGui::SameLine();
+            if (ImGui::Button("Stop"))
+            {
+                m_experimentRunner->requestStop();
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("Stops picking new runs; in-flight runs finish first.");
+            }
+        }
+
+        RunnerProgress progress;
+        {
+            std::lock_guard<std::mutex> lock(m_experimentProgressMutex);
+            progress = m_experimentProgress;
+        }
+        if (running || m_experimentExitCode >= 0)
+        {
+            const float fraction =
+                progress.total > 0
+                    ? static_cast<float>(progress.completed) / static_cast<float>(progress.total)
+                    : 1.0f;
+            char overlay[64];
+            std::snprintf(overlay, sizeof(overlay), "%zu / %zu", progress.completed,
+                          progress.total);
+            ImGui::ProgressBar(fraction, ImVec2(-1, 0), overlay);
+            if (!progress.lastKey.empty())
+            {
+                ImGui::TextWrapped("last: %s -> %s", progress.lastKey.c_str(),
+                                   progress.lastStatus.c_str());
+            }
+        }
+        if (!running && m_experimentExitCode >= 0 && m_experimentRunner)
+        {
+            ImGui::Text("Finished (exit code %d).", m_experimentExitCode);
+            ImGui::TextWrapped("Results: %s", m_experimentRunner->resultsCsvPath().c_str());
+            ImGui::TextWrapped("Plots: scripts/openmapf-plot %s",
+                               m_experimentRunner->resultsCsvPath().c_str());
+        }
+    }
+
+    if (!m_experimentStatus.empty())
+    {
+        ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s", m_experimentStatus.c_str());
+    }
+}
+
 void UIManager::renderSolversTab()
 {
     ImGui::Spacing();
@@ -1724,6 +1866,12 @@ void UIManager::renderCBSResultsDialog()
 // Destructor - cleanup temporary files
 UIManager::~UIManager()
 {
+    if (m_experimentRunner) {
+        m_experimentRunner->requestStop();
+    }
+    if (m_experimentThread.joinable()) {
+        m_experimentThread.join();
+    }
     cleanupTempFiles();
 }
 

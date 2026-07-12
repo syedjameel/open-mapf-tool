@@ -8,14 +8,18 @@
 #include "Types.h"
 #include "CBSDriver.h"
 #include "LacamDriver.h"
+#include "ExperimentRunner.h"
+#include "ExperimentSpec.h"
 #include "MapFormat.h"
 #include "ResultsCsv.h"
 #include "SolverManifest.h"
 #include <vector>
 #include <string>
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <thread>
 #include <chrono>
 #include <filesystem>
 #include <algorithm>
@@ -92,6 +96,19 @@ private:
     // Results CSV export
     char m_resultsCsvPathBuffer[512] = "openmapf-results.csv";
     std::string m_resultsExportStatus;
+
+    // Experiments tab (thin GUI over the headless runner; the CLI
+    // 'openmapf run' is the primary interface)
+    ImGui::FileBrowser m_experimentFileDialog;
+    std::optional<ExperimentSpec> m_experimentSpec;
+    std::string m_experimentStatus;
+    bool m_experimentResume = false;
+    std::unique_ptr<ExperimentRunner> m_experimentRunner;
+    std::thread m_experimentThread;
+    std::mutex m_experimentProgressMutex;
+    RunnerProgress m_experimentProgress;
+    std::atomic<bool> m_experimentRunning{false};
+    int m_experimentExitCode = -1;
     
     // References to other components
     Environment& m_env;
@@ -143,6 +160,7 @@ private:
     // UI rendering methods
     void renderMapTab();
     void renderSolversTab();
+    void renderExperimentsTab();
     void renderAlgorithmTab();
     void renderGridSizeTab();
     void renderPathsTab();
