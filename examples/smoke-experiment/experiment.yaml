@@ -1,0 +1,14 @@
+# Smoke experiment: runs entirely with the bundled fake solver and sample
+# benchmark data -- no real solver needed. See docs/experiments.md.
+name: smoke
+output_dir: out          # relative to this file
+time_limit_s: 5
+seeds: [0, 1]
+agents: [2, 4, 8]
+solvers: [cbs]
+grids: [square, hex-oddr]
+instances:
+  - map: ../../maps/movingai/empty-8-8.map
+    scen: ../../maps/movingai/empty-8-8-random-1.scen
+  - map: ../../maps/movingai/random-32-32-10.map
+    scen: ../../maps/movingai/random-32-32-10-random-1.scen

@@ -97,8 +97,24 @@ Each linked or embedded algorithm retains its original authorship and license te
 
 ---
 
+## Batch experiments (headless)
+
+Run a full benchmark matrix — solvers x maps x scenarios x agent counts x
+seeds — without a display, resumably and in parallel, then plot the two
+standard MAPF figures:
+
+```sh
+build/openmapf run examples/smoke-experiment/experiment.yaml \
+    --solvers examples/smoke-experiment/solvers.yaml   # works with no real solvers
+scripts/openmapf-plot examples/smoke-experiment/out/results.csv
+```
+
+See [docs/experiments.md](docs/experiments.md) for the spec grammar, resume
+semantics, and the results-CSV schema
+([docs/file-formats.md](docs/file-formats.md)).
+
 ## 🚧 Planned Features / TODO
 
-- [ ] Direct integration with LaCAM  
-- [ ] Experiment module with metrics logging and performance plot generation  
+- [x] Direct integration with LaCAM
+- [x] Experiment module with metrics logging and performance plot generation  
 

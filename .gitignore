@@ -9,3 +9,4 @@
 
 # extra local build trees (build-*, e.g. FetchContent verification builds)
 /build-*
+/examples/smoke-experiment/out

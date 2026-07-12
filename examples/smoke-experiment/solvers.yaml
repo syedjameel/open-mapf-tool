@@ -1,0 +1,7 @@
+# Solver manifest for the smoke experiment: points the 'cbs' driver at the
+# bundled fake solver (relative paths resolve against this file).
+solvers:
+  - key: cbs
+    name: Fake CBS (pipeline smoke test)
+    executable: ./fake-cbs.sh
+    grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]
