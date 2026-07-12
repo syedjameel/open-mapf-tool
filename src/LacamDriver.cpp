@@ -68,6 +68,7 @@ void LacamDriverBase::solveAsync(const std::vector<Agent>& agents,
 
 void LacamDriverBase::cancel() {
     m_shouldCancel.store(true);
+    m_runner.terminate(); // actually stop the child process, if any
 }
 
 void LacamDriverBase::generateMapFile(const Environment& env, const std::string& filename) {
@@ -188,59 +189,67 @@ void LacamDriverBase::executeLacam(const std::vector<Agent>& agents,
 
         if (m_shouldCancel.load()) return;
 
-        // Build LaCAM command
-        std::ostringstream cmd;
-        cmd << m_executablePath;
-        cmd << " -m " << mapFile;
-        cmd << " -i " << scenFile;
-        cmd << " -N " << agentCount;
-        cmd << " -t " << params.timeLimit;
-        cmd << " -s " << params.seed;
-        cmd << " -v " << params.verbose;
-        cmd << " -o " << outputFile;
+        // Build LaCAM command (argv form: executed directly, never via a
+        // shell; stderr is captured instead of the POSIX-only 2>/dev/null)
+        std::vector<std::string> argv = {
+            m_executablePath,
+            "-m", mapFile,
+            "-i", scenFile,
+            "-N", std::to_string(agentCount),
+            "-t", std::to_string(params.timeLimit),
+            "-s", std::to_string(params.seed),
+            "-v", std::to_string(params.verbose),
+            "-o", outputFile,
+        };
 
         if (params.logShort) {
-            cmd << " -l";
+            argv.push_back("-l");
         }
 
         // Grid type configuration
         if (env.m_hexagon) {
-            cmd << " -g hex";
-            cmd << " -hc " << getHexConfigString(env);
+            argv.push_back("-g");
+            argv.push_back("hex");
+            argv.push_back("-hc");
+            argv.push_back(getHexConfigString(env));
         } else {
-            cmd << " -g square";
+            argv.push_back("-g");
+            argv.push_back("square");
         }
 
         // Algorithm-specific parameters for LaCAM2
         if (m_algorithmName == "LaCAM2") {
-            // LaCAM2 has additional parameters like objective and restart_rate
-            // These could be added to LacamParameters if needed
-            cmd << " --objective 0";  // Default: no optimization
-            cmd << " --restart_rate 0.001";  // Default restart rate
+            argv.push_back("--objective");
+            argv.push_back("0"); // default: no optimization
+            argv.push_back("--restart_rate");
+            argv.push_back("0.001"); // default restart rate
         }
 
-        // Algorithm-specific parameters for LaCAM3
-        if (m_algorithmName == "LaCAM3") {
-            // LaCAM3 has many more parameters, using defaults for now
-            // These could be exposed through LacamParameters if needed
-        }
+        // (LaCAM3 uses its defaults; expose via LacamParameters if needed)
 
-        // Redirect stderr to /dev/null to suppress verbose output
-        cmd << " 2>/dev/null";
-
-        std::cout << "[" << m_algorithmName << "] Executing command: " << cmd.str() << std::endl;
+        std::cout << "[" << m_algorithmName << "] Executing command: "
+                  << ProcessRunner::joinArgv(argv) << std::endl;
 
         // Execute LaCAM
         auto startTime = std::chrono::steady_clock::now();
-        int result = std::system(cmd.str().c_str());
+        ProcessRunner::Result run = m_runner.run(argv);
         auto endTime = std::chrono::steady_clock::now();
 
         m_results.runtime = std::chrono::duration<double>(endTime - startTime).count();
 
-        if (m_shouldCancel.load()) return;
+        if (m_shouldCancel.load() || run.terminated) return;
 
-        if (result != 0) {
-            m_results.errorMessage = m_algorithmName + " execution failed with code " + std::to_string(result);
+        if (!run.started) {
+            m_results.errorMessage =
+                "Failed to launch " + m_algorithmName + ": " + run.errorMessage;
+            return;
+        }
+        if (run.exitCode != 0) {
+            m_results.errorMessage =
+                m_algorithmName + " exited with code " + std::to_string(run.exitCode);
+            if (!run.stderrText.empty()) {
+                m_results.errorMessage += "\nstderr: " + ProcessRunner::excerpt(run.stderrText);
+            }
             return;
         }
 

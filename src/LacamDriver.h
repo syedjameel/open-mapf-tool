@@ -7,6 +7,7 @@
 #include <functional>
 #include "Types.h"
 #include "Environment.h"
+#include "ProcessRunner.h"
 
 // LaCAM Parameter Structure
 struct LacamParameters
@@ -75,6 +76,7 @@ protected:
     std::string m_algorithmName;
 
 private:
+    ProcessRunner m_runner;
     std::atomic<bool> m_isRunning{false};
     std::atomic<bool> m_shouldCancel{false};
     std::thread m_solverThread;

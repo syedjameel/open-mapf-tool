@@ -71,8 +71,15 @@ ProcessRunner::Result ProcessRunner::run(const std::vector<std::string>& argv)
     }
 
     result.exitCode = exitCode;
-    result.stdoutText = readAll(subprocess_stdout(process));
-    result.stderrText = readAll(subprocess_stderr(process));
+    if (!result.terminated) {
+        // Note: reading drains the pipes until every writer has closed
+        // them. After a kill, orphaned grandchildren of the child may still
+        // hold the pipe open (e.g. "sh -c 'solver ...'"), which would block
+        // here for their whole lifetime -- and the output of a killed run
+        // is meaningless anyway, so skip it.
+        result.stdoutText = readAll(subprocess_stdout(process));
+        result.stderrText = readAll(subprocess_stderr(process));
+    }
 
     subprocess_destroy(process);
     delete process;
@@ -82,14 +89,43 @@ ProcessRunner::Result ProcessRunner::run(const std::vector<std::string>& argv)
 void ProcessRunner::terminate()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
-    if (m_process != nullptr) {
-        m_terminateRequested = true;
-        subprocess_terminate(m_process);
+    if (m_process == nullptr) {
+        return;
     }
+#if !defined(_WIN32)
+    // subprocess_join zeroes the pid once the child is reaped;
+    // kill(0, ...) would signal our own process group. Guard against the
+    // tiny window between join returning and run() clearing m_process.
+    if (m_process->child == 0) {
+        return;
+    }
+#endif
+    m_terminateRequested = true;
+    subprocess_terminate(m_process);
 }
 
 bool ProcessRunner::isRunning() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_process != nullptr;
+}
+
+std::string ProcessRunner::joinArgv(const std::vector<std::string>& argv)
+{
+    std::string out;
+    for (const auto& a : argv) {
+        if (!out.empty()) {
+            out += ' ';
+        }
+        out += a;
+    }
+    return out;
+}
+
+std::string ProcessRunner::excerpt(const std::string& text, std::size_t maxLen)
+{
+    if (text.size() <= maxLen) {
+        return text;
+    }
+    return text.substr(0, maxLen) + "...";
 }

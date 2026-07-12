@@ -38,6 +38,10 @@ public:
 
     bool isRunning() const;
 
+    // Helpers for logging/diagnostics
+    static std::string joinArgv(const std::vector<std::string>& argv);
+    static std::string excerpt(const std::string& text, std::size_t maxLen = 500);
+
 private:
     mutable std::mutex m_mutex;
     subprocess_s* m_process = nullptr; // non-null while a child is live

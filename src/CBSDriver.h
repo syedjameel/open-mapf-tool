@@ -7,6 +7,7 @@
 #include <functional>
 #include "Types.h"
 #include "Environment.h"
+#include "ProcessRunner.h"
 
 // CBS Parameter Structure
 struct CBSParameters
@@ -75,6 +76,7 @@ public:
 
 private:
     std::string m_executablePath; // empty = not configured
+    ProcessRunner m_runner;
     std::atomic<bool> m_isRunning{false};
     std::atomic<bool> m_shouldCancel{false};
     std::thread m_solverThread;

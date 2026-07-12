@@ -172,6 +172,7 @@ if(OPENMAPF_BUILD_TESTS)
         tests/test_process_runner.cpp
         tests/test_scen_writer.cpp
         tests/test_solver_driver.cpp
+        tests/test_solver_integration.cpp
     )
 
     target_link_libraries(openmapf_tests PRIVATE

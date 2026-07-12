@@ -66,6 +66,7 @@ void CBSDriver::solveAsync(const std::vector<Agent>& agents,
 
 void CBSDriver::cancel() {
     m_shouldCancel.store(true);
+    m_runner.terminate(); // actually stop the child process, if any
 }
 
 void CBSDriver::generateMapFile(const Environment& env, const std::string& filename) {
@@ -169,43 +170,53 @@ void CBSDriver::executeCBS(const std::vector<Agent>& agents,
         
         if (m_shouldCancel.load()) return;
         
-        // Build CBS command
-        std::stringstream cmd;
-        cmd << m_executablePath;
-        cmd << " -m " << mapFile;
-        cmd << " -a " << scenFile;  
-        cmd << " -o " << outputFile;
-        cmd << " -k " << agentCount;
-        cmd << " -t " << params.cutoffTime;
-        cmd << " --heuristics=" << params.heuristic;
-        cmd << " --cluster_heuristics=" << params.clusterHeuristic;
-        cmd << " --bypass=" << (params.bypass ? "true" : "false");
-        cmd << " --rectangleReasoning=" << params.rectangleReasoning;
-        cmd << " --corridorReasoning=" << params.corridorReasoning;
-        cmd << " --targetReasoning=" << (params.targetReasoning ? "true" : "false");
-        cmd << " --mutexReasoning=" << (params.mutexReasoning ? "true" : "false");
-        cmd << " --prioritizingConflicts=" << (params.prioritizingConflicts ? "true" : "false");
-        cmd << " --disjointSplitting=" << (params.disjointSplitting ? "true" : "false");
-        cmd << " --sipp=" << (params.sipp ? "true" : "false");
-        cmd << " --nodeLimit=" << params.nodeLimit;
-        cmd << " --screen=" << params.screen;
-        cmd << " --stats=" << (params.stats ? "true" : "false");
-        cmd << " --restart=" << params.restart;
-        cmd << " --seed=" << params.seed;
-        cmd << " --hexGrid=" << (params.hexGrid ? "true" : "false");
-        cmd << " --gridConfig=" << params.gridConfig;
-        cmd << " --outputPaths=" << pathsFile;
-        
+        // Build CBS command (argv form: executed directly, never via a shell)
+        auto boolArg = [](bool b) { return std::string(b ? "true" : "false"); };
+        std::vector<std::string> argv = {
+            m_executablePath,
+            "-m", mapFile,
+            "-a", scenFile,
+            "-o", outputFile,
+            "-k", std::to_string(agentCount),
+            "-t", std::to_string(params.cutoffTime),
+            "--heuristics=" + params.heuristic,
+            "--cluster_heuristics=" + params.clusterHeuristic,
+            "--bypass=" + boolArg(params.bypass),
+            "--rectangleReasoning=" + params.rectangleReasoning,
+            "--corridorReasoning=" + params.corridorReasoning,
+            "--targetReasoning=" + boolArg(params.targetReasoning),
+            "--mutexReasoning=" + boolArg(params.mutexReasoning),
+            "--prioritizingConflicts=" + boolArg(params.prioritizingConflicts),
+            "--disjointSplitting=" + boolArg(params.disjointSplitting),
+            "--sipp=" + boolArg(params.sipp),
+            "--nodeLimit=" + std::to_string(params.nodeLimit),
+            "--screen=" + std::to_string(params.screen),
+            "--stats=" + boolArg(params.stats),
+            "--restart=" + std::to_string(params.restart),
+            "--seed=" + std::to_string(params.seed),
+            "--hexGrid=" + boolArg(params.hexGrid),
+            "--gridConfig=" + params.gridConfig,
+            "--outputPaths=" + pathsFile,
+        };
+
         if (m_shouldCancel.load()) return;
-        
+
         // Execute CBS solver
-        std::cout << "Executing CBS: " << cmd.str() << std::endl;
-        int result = std::system(cmd.str().c_str());
-        
-        if (m_shouldCancel.load()) return;
-        
-        if (result != 0) {
-            m_results.errorMessage = "CBS solver execution failed with code " + std::to_string(result);
+        std::cout << "Executing CBS: " << ProcessRunner::joinArgv(argv) << std::endl;
+        ProcessRunner::Result run = m_runner.run(argv);
+
+        if (m_shouldCancel.load() || run.terminated) return;
+
+        if (!run.started) {
+            m_results.errorMessage = "Failed to launch CBS solver: " + run.errorMessage;
+            return;
+        }
+        if (run.exitCode != 0) {
+            m_results.errorMessage =
+                "CBS solver exited with code " + std::to_string(run.exitCode);
+            if (!run.stderrText.empty()) {
+                m_results.errorMessage += "\nstderr: " + ProcessRunner::excerpt(run.stderrText);
+            }
             return;
         }
         
