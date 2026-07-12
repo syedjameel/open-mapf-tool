@@ -344,12 +344,12 @@ bool LacamDriverBase::convertLacamPathsToStandard(const std::string& lacamOutput
             // No coordinate transformation needed - LaCAM already provides correct format
 
             // Ensure we have enough agents
-            while (agentPaths.size() <= agentIdx) {
+            while (agentPaths.size() <= static_cast<size_t>(agentIdx)) {
                 agentPaths.push_back(std::vector<std::pair<int, int>>());
             }
 
             // Ensure we have enough time steps
-            while (agentPaths[agentIdx].size() <= timeStep) {
+            while (agentPaths[agentIdx].size() <= static_cast<size_t>(timeStep)) {
                 if (agentPaths[agentIdx].empty()) {
                     agentPaths[agentIdx].push_back({x, y});
                 } else {

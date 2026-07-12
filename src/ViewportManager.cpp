@@ -88,7 +88,7 @@ void ViewportManager::handleInput(const ImGuiIO& io, bool isHovered, const ImVec
     }
 }
 
-void ViewportManager::update(float deltaTime)
+void ViewportManager::update(float /*deltaTime*/)
 {
     // Smooth interpolation for pan and zoom
     m_panOffset.x += (m_targetPanOffset.x - m_panOffset.x) * SMOOTH_FACTOR;

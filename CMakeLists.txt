@@ -2,6 +2,20 @@ cmake_minimum_required(VERSION 3.16)
 project(openmapf VERSION 0.1.0 LANGUAGES CXX)
 
 option(OPENMAPF_BUILD_TESTS "Build unit tests (fetches Catch2 via FetchContent)" ON)
+option(OPENMAPF_WERROR "Treat first-party compiler warnings as errors (CI)" OFF)
+
+# Warning flags for first-party targets only (never for vendored code)
+if(MSVC)
+    set(OPENMAPF_WARNING_FLAGS /W4)
+    if(OPENMAPF_WERROR)
+        list(APPEND OPENMAPF_WARNING_FLAGS /WX)
+    endif()
+else()
+    set(OPENMAPF_WARNING_FLAGS -Wall -Wextra)
+    if(OPENMAPF_WERROR)
+        list(APPEND OPENMAPF_WARNING_FLAGS -Werror)
+    endif()
+endif()
 
 find_package(Threads REQUIRED)
 find_package(yaml-cpp REQUIRED)
@@ -28,6 +42,7 @@ add_library(openmapf_core STATIC
 
 target_include_directories(openmapf_core PUBLIC src)
 target_compile_features(openmapf_core PUBLIC cxx_std_17)
+target_compile_options(openmapf_core PRIVATE ${OPENMAPF_WARNING_FLAGS})
 target_link_libraries(openmapf_core PUBLIC
     ${OPENMAPF_YAMLCPP_TARGET}
     Threads::Threads
@@ -76,6 +91,8 @@ target_link_libraries(openmapf PRIVATE
     imgui
     ${CMAKE_DL_LIBS}
 )
+
+target_compile_options(openmapf PRIVATE ${OPENMAPF_WARNING_FLAGS})
 
 target_compile_definitions(openmapf PRIVATE
     OPENMAPF_VERSION="${PROJECT_VERSION}"

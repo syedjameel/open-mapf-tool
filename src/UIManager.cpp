@@ -449,7 +449,7 @@ void UIManager::renderAlgorithmTab()
     ImGui::Text("Select algorithm:");
     if (ImGui::BeginCombo("##AlgoCombo", m_algoNames[m_selectedAlgo].c_str()))
     {
-        for (int n = 0; n < m_algoNames.size(); n++)
+        for (int n = 0; n < static_cast<int>(m_algoNames.size()); n++)
         {
             bool is_selected = (m_selectedAlgo == n);
             if (ImGui::Selectable(m_algoNames[n].c_str(), is_selected))
@@ -828,7 +828,7 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
         Agent& agent = m_dynamicAgents[i];
         
         // Check if clicking on agent's start position
-        if (CoordUtils::x(agent.start) == col && CoordUtils::y(agent.start) == row)
+        if (CoordUtils::x(agent.start) == static_cast<int>(col) && CoordUtils::y(agent.start) == static_cast<int>(row))
         {
             // Remove this agent
             m_dynamicAgents.erase(m_dynamicAgents.begin() + i);
@@ -850,7 +850,7 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
         }
         
         // Check if clicking on agent's goal position
-        if (agent.hasGoal && CoordUtils::x(agent.goal) == col && CoordUtils::y(agent.goal) == row)
+        if (agent.hasGoal && CoordUtils::x(agent.goal) == static_cast<int>(col) && CoordUtils::y(agent.goal) == static_cast<int>(row))
         {
             // Remove goal, make this agent pending again
             agent.hasGoal = false;
@@ -866,7 +866,7 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
         Agent& agent = m_dynamicAgents[m_pendingAgentIndex];
         
         // Check if clicking on the same position as start
-        if (CoordUtils::x(agent.start) == col && CoordUtils::y(agent.start) == row)
+        if (CoordUtils::x(agent.start) == static_cast<int>(col) && CoordUtils::y(agent.start) == static_cast<int>(row))
         {
             // Remove this agent (clicking on same cell)
             m_dynamicAgents.erase(m_dynamicAgents.begin() + m_pendingAgentIndex);
