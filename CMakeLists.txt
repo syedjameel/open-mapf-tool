@@ -51,6 +51,7 @@ add_library(openmapf_core STATIC
     src/CBSDriver.cpp
     src/ConfigLocator.cpp
     src/Environment.cpp
+    src/ExperimentRunner.cpp
     src/ExperimentSpec.cpp
     src/LacamDriver.cpp
     src/MapFormat.cpp
@@ -171,6 +172,7 @@ if(OPENMAPF_BUILD_TESTS)
     add_executable(openmapf_tests
         tests/test_config_locator.cpp
         tests/test_environment.cpp
+        tests/test_experiment_runner.cpp
         tests/test_experiment_spec.cpp
         tests/test_map_format.cpp
         tests/test_path_manager.cpp

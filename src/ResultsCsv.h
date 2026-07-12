@@ -56,7 +56,8 @@ std::vector<std::string> splitRow(const std::string& line);
 
 // Read all *complete* data rows from an existing results CSV: the header is
 // skipped, a final line not terminated by a newline (crash during write) is
-// ignored, and rows with fewer than kKeyColumnCount fields are ignored.
+// ignored, and rows with fewer fields than the file's own header are
+// ignored (robust to schema growth and to crash-repaired partial rows).
 // Returns an empty vector when the file does not exist.
 std::vector<std::vector<std::string>> readCompletedRows(const std::string& path);
 

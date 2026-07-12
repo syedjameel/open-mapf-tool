@@ -160,6 +160,15 @@ TEST_CASE("readCompletedRows skips the header and truncated final rows", "[resul
         auto rows = ResultsCsv::readCompletedRows(csv);
         REQUIRE(rows.size() == 1);
         CHECK(rows[0][0] == "CBS");
+
+        // Appending after a crash first terminates the partial row, so the
+        // new row is intact. The repaired partial row still has fewer
+        // fields than the header and stays ignored.
+        REQUIRE(ResultsCsv::appendRow(csv, sampleRecord()));
+        rows = ResultsCsv::readCompletedRows(csv);
+        REQUIRE(rows.size() == 2);
+        CHECK(rows[1][0] == "CBS");
+        CHECK(rows[1].size() == ResultsCsv::kColumnCount);
     }
 
     SECTION("short garbage rows are ignored")

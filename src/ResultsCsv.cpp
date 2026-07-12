@@ -1,5 +1,6 @@
 #include "ResultsCsv.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -99,19 +100,24 @@ std::vector<std::vector<std::string>> readCompletedRows(const std::string& path)
     std::istringstream lines(content);
     std::string line;
     bool first = true;
+    std::size_t expectedFields = kKeyColumnCount;
     while (std::getline(lines, line)) {
         if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
         if (first) {
-            first = false; // header
+            first = false;
+            // Completeness is judged against this file's own header width,
+            // so resuming works across schema versions and crash-repaired
+            // partial rows are never mistaken for complete ones.
+            expectedFields = std::max(kKeyColumnCount, splitRow(line).size());
             continue;
         }
         if (line.empty()) {
             continue;
         }
         auto fields = splitRow(line);
-        if (fields.size() >= kKeyColumnCount) {
+        if (fields.size() >= expectedFields) {
             rows.push_back(std::move(fields));
         }
     }
@@ -124,12 +130,29 @@ bool appendRow(const std::string& path, const RunRecord& r)
     const bool needHeader =
         !std::filesystem::exists(path, ec) || std::filesystem::file_size(path, ec) == 0;
 
+    // Crash repair: if the previous process died mid-row the file ends
+    // without a newline; terminate that partial row so the new row does not
+    // concatenate onto it (readCompletedRows ignores the partial row either
+    // way).
+    bool needRepairNewline = false;
+    if (!needHeader) {
+        std::ifstream check(path, std::ios::binary | std::ios::ate);
+        if (check.is_open() && check.tellg() > 0) {
+            check.seekg(-1, std::ios::end);
+            char last = '\n';
+            check.get(last);
+            needRepairNewline = last != '\n';
+        }
+    }
+
     std::ofstream file(path, std::ios::app);
     if (!file.is_open()) {
         return false;
     }
     if (needHeader) {
         file << kHeader << '\n';
+    } else if (needRepairNewline) {
+        file << '\n';
     }
     file << formatRow(r) << '\n';
     file.flush(); // completed rows must survive a crash (resume semantics)
