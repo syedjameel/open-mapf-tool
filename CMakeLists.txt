@@ -53,11 +53,13 @@ add_library(openmapf_core STATIC
     src/Environment.cpp
     src/ExperimentRunner.cpp
     src/ExperimentSpec.cpp
+    src/ExternalSolverDriver.cpp
     src/LacamDriver.cpp
     src/MapFormat.cpp
     src/PathManager.cpp
     src/ProcessRunner.cpp
     src/ResultsCsv.cpp
+    src/SolutionParsers.cpp
     src/SolverManifest.cpp
 )
 

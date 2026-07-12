@@ -1,105 +1,31 @@
 #include "LacamDriver.h"
-#include "MapFormat.h"
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <filesystem>
-#include <cstdlib>
+
 #include <algorithm>
-#include <chrono>
+#include <iostream>
+#include <memory>
 #include <regex>
+#include <sstream>
+#include <vector>
 
-LacamDriverBase::LacamDriverBase(const std::string& executablePath, const std::string& algorithmName)
-    : m_executablePath(executablePath), m_algorithmName(algorithmName) {}
+#include "SolutionParsers.h"
 
-LacamDriverBase::~LacamDriverBase() {
-    cancel();
-    if (m_solverThread.joinable()) {
-        m_solverThread.join();
-    }
+std::string LacamDriverBase::toLower(const std::string& s)
+{
+    std::string out = s;
+    std::transform(out.begin(), out.end(), out.begin(), ::tolower);
+    return out;
 }
 
-void LacamDriverBase::solveAsync(const std::vector<Agent>& agents,
-                                 const Environment& env,
-                                 const LacamParameters& params,
-                                 const std::string& mapName,
-                                 std::function<void(const LacamResults&)> callback,
-                                 const std::string& tempDir,
-                                 std::function<void(const std::string&)> tempFileCallback) {
-    if (m_isRunning.load()) {
-        return; // Already running
-    }
-
-    // Clean up any previous thread
-    if (m_solverThread.joinable()) {
-        m_shouldCancel.store(true);
-        m_solverThread.join();
-    }
-
-    m_shouldCancel.store(false);
-    m_isRunning.store(true);
-
-    // Store temp file management info
-    m_tempDir = tempDir;
-    m_tempFileCallback = tempFileCallback;
-
-    // Launch solver in background thread
-    m_solverThread = std::thread([this, agents, env, params, mapName, callback]() {
-        try {
-            // Small delay to ensure thread setup
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-            executeLacam(agents, env, params, mapName, m_tempDir, m_tempFileCallback);
-
-            if (callback && !m_shouldCancel.load()) {
-                callback(m_results);
-            }
-        } catch (const std::exception& e) {
-            m_results.errorMessage = e.what();
-            m_results.solutionFound = false;
-            if (callback) {
-                callback(m_results);
-            }
-        }
-
-        m_isRunning.store(false);
-    });
+LacamDriverBase::LacamDriverBase(const std::string& executablePath,
+                                 const std::string& algorithmName)
+    : m_algorithmName(algorithmName),
+      m_engine(algorithmName, toLower(algorithmName), "/path/to/main")
+{
+    m_engine.setExecutablePath(executablePath);
 }
 
-void LacamDriverBase::cancel() {
-    m_shouldCancel.store(true);
-    m_runner.terminate(); // actually stop the child process, if any
-}
-
-void LacamDriverBase::generateMapFile(const Environment& env, const std::string& filename) {
-    std::ofstream file(filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("Cannot create map file: " + filename);
-    }
-
-    MapFormat::writeMap(file, env.m_grid, env.m_cols, env.m_rows);
-    file.close();
-}
-
-void LacamDriverBase::generateScenarioFile(const std::vector<Agent>& agents, const Environment& env,
-                                           const std::string& filename) {
-    std::ofstream file(filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("Cannot create scenario file: " + filename);
-    }
-
-    // Extract map filename from scenario filename
-    std::string mapFilename = filename.substr(0, filename.find_last_of('.')) + ".map";
-    size_t lastSlash = mapFilename.find_last_of("/\\");
-    if (lastSlash != std::string::npos) {
-        mapFilename = mapFilename.substr(lastSlash + 1);
-    }
-
-    MapFormat::writeScen(file, agents, mapFilename, env.m_cols, env.m_rows);
-    file.close();
-}
-
-std::string LacamDriverBase::getHexConfigString(const Environment& env) const {
+std::string LacamDriverBase::hexConfigString(const Environment& env)
+{
     switch (env.m_hex_grid_type) {
         case HexGridType::ODD_R:
             return "odd-row";
@@ -114,162 +40,84 @@ std::string LacamDriverBase::getHexConfigString(const Environment& env) const {
     }
 }
 
-void LacamDriverBase::executeLacam(const std::vector<Agent>& agents,
-                                   const Environment& env,
-                                   const LacamParameters& params,
-                                   const std::string& mapName,
-                                   const std::string& tempDir,
-                                   std::function<void(const std::string&)> tempFileCallback) {
-    // Store current map name
-    m_currentMapName = mapName;
-
-    // Reset results
-    m_results = LacamResults();
-
-    // Count agents with goals
-    size_t agentCount = 0;
-    for (const auto& agent : agents) {
-        if (agent.hasGoal) agentCount++;
-    }
-
-    if (agentCount == 0) {
-        m_results.errorMessage = "No agents with goals found";
-        return;
-    }
-
-    // Degrade gracefully when the solver binary is absent: report a clear,
-    // actionable error instead of shelling out to a nonexistent path.
-    std::string solverKey = m_algorithmName;
-    std::transform(solverKey.begin(), solverKey.end(), solverKey.begin(), ::tolower);
-    if (m_executablePath.empty()) {
-        m_results.errorMessage =
-            m_algorithmName + " solver is not configured. Set 'solvers: " + solverKey +
-            ": /path/to/main' in your env.yaml (run 'openmapf --help' for config locations).";
-        return;
-    }
-    if (!std::filesystem::exists(m_executablePath)) {
-        m_results.errorMessage =
-            m_algorithmName + " solver executable not found: " + m_executablePath +
-            " (check the 'solvers: " + solverKey + ":' entry in your env.yaml).";
-        return;
-    }
-
-    try {
-        // Generate unique filenames with timestamp
-        auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count();
-        std::string uniquePrefix = mapName + "_" + std::to_string(timestamp);
-
-        std::string mapFile, scenFile, outputFile, pathsFile;
-
-        if (!tempDir.empty()) {
-            // Use temp directory
-            mapFile = tempDir + "/" + uniquePrefix + ".map";
-            scenFile = tempDir + "/" + uniquePrefix + ".scen";
-            outputFile = tempDir + "/" + uniquePrefix + "_lacam.txt";
-            pathsFile = tempDir + "/" + uniquePrefix + "_paths.txt";
-        } else {
-            // Use current directory
-            mapFile = uniquePrefix + ".map";
-            scenFile = uniquePrefix + ".scen";
-            outputFile = uniquePrefix + "_lacam.txt";
-            pathsFile = uniquePrefix + "_paths.txt";
-        }
-
-        generateMapFile(env, mapFile);
-        generateScenarioFile(agents, env, scenFile);
-
-        // Register temp files for cleanup if callback provided
-        if (tempFileCallback) {
-            tempFileCallback(mapFile);
-            tempFileCallback(scenFile);
-            tempFileCallback(outputFile);
-            tempFileCallback(pathsFile);
-        }
-
-        if (m_shouldCancel.load()) return;
-
-        // Build LaCAM command (argv form: executed directly, never via a
-        // shell; stderr is captured instead of the POSIX-only 2>/dev/null)
-        std::vector<std::string> argv = {
-            m_executablePath,
+void LacamDriverBase::solveAsync(const std::vector<Agent>& agents,
+                                 const Environment& env,
+                                 const LacamParameters& params,
+                                 const std::string& mapName,
+                                 std::function<void(const LacamResults&)> callback,
+                                 const std::string& tempDir,
+                                 std::function<void(const std::string&)> tempFileCallback) {
+    // LaCAM-specific command line; the engine owns everything else.
+    const bool hex = env.m_hexagon;
+    const std::string hexConfig = hexConfigString(env);
+    auto buildInvocation = [params, hex, hexConfig, name = m_algorithmName,
+                            exe = m_engine.getExecutablePath()](
+                               const std::string& mapFile, const std::string& scenFile,
+                               const std::string& prefixPath, std::size_t agentCount) {
+        ExternalSolverDriver::Invocation inv;
+        inv.outputFile = prefixPath + "_lacam.txt";
+        inv.pathsFile = prefixPath + "_paths.txt";
+        inv.argv = {
+            exe,
             "-m", mapFile,
             "-i", scenFile,
             "-N", std::to_string(agentCount),
             "-t", std::to_string(params.timeLimit),
             "-s", std::to_string(params.seed),
             "-v", std::to_string(params.verbose),
-            "-o", outputFile,
+            "-o", inv.outputFile,
         };
 
         if (params.logShort) {
-            argv.push_back("-l");
+            inv.argv.push_back("-l");
         }
 
         // Grid type configuration
-        if (env.m_hexagon) {
-            argv.push_back("-g");
-            argv.push_back("hex");
-            argv.push_back("-hc");
-            argv.push_back(getHexConfigString(env));
+        if (hex) {
+            inv.argv.push_back("-g");
+            inv.argv.push_back("hex");
+            inv.argv.push_back("-hc");
+            inv.argv.push_back(hexConfig);
         } else {
-            argv.push_back("-g");
-            argv.push_back("square");
+            inv.argv.push_back("-g");
+            inv.argv.push_back("square");
         }
 
         // Algorithm-specific parameters for LaCAM2
-        if (m_algorithmName == "LaCAM2") {
-            argv.push_back("--objective");
-            argv.push_back("0"); // default: no optimization
-            argv.push_back("--restart_rate");
-            argv.push_back("0.001"); // default restart rate
+        if (name == "LaCAM2") {
+            inv.argv.push_back("--objective");
+            inv.argv.push_back("0"); // default: no optimization
+            inv.argv.push_back("--restart_rate");
+            inv.argv.push_back("0.001"); // default restart rate
         }
-
         // (LaCAM3 uses its defaults; expose via LacamParameters if needed)
 
-        std::cout << "[" << m_algorithmName << "] Executing command: "
-                  << ProcessRunner::joinArgv(argv) << std::endl;
+        return inv;
+    };
 
-        // Execute LaCAM
-        auto startTime = std::chrono::steady_clock::now();
-        ProcessRunner::Result run = m_runner.run(argv);
-        auto endTime = std::chrono::steady_clock::now();
+    auto outcomeToResults = [this, callback](const SolverOutcome& outcome) {
+        LacamResults results;
+        results.solutionFound = outcome.solved;
+        results.runtime = outcome.runtimeS;
+        results.solutionCost = static_cast<int>(outcome.cost);
+        results.makespan = static_cast<int>(outcome.makespan);
+        results.numAgents = static_cast<int>(outcome.agents);
+        results.socLowerBound = static_cast<int>(outcome.socLowerBound);
+        results.makespanLowerBound = static_cast<int>(outcome.makespanLowerBound);
+        results.sumOfLoss = static_cast<int>(outcome.sumOfLoss);
+        results.sumOfLossLowerBound = static_cast<int>(outcome.sumOfLossLowerBound);
+        results.errorMessage = outcome.errorMessage;
+        results.pathsFile = outcome.pathsFile;
 
-        m_results.runtime = std::chrono::duration<double>(endTime - startTime).count();
-
-        if (m_shouldCancel.load() || run.terminated) return;
-
-        if (!run.started) {
-            m_results.errorMessage =
-                "Failed to launch " + m_algorithmName + ": " + run.errorMessage;
-            return;
+        m_results = results;
+        if (callback) {
+            callback(results);
         }
-        if (run.exitCode != 0) {
-            m_results.errorMessage =
-                m_algorithmName + " exited with code " + std::to_string(run.exitCode);
-            if (!run.stderrText.empty()) {
-                m_results.errorMessage += "\nstderr: " + ProcessRunner::excerpt(run.stderrText);
-            }
-            return;
-        }
+    };
 
-        // Parse the LaCAM output
-        if (parseResults(outputFile)) {
-            // Convert LaCAM paths to standard format
-            if (convertLacamPathsToStandard(outputFile, pathsFile)) {
-                m_results.pathsFile = pathsFile;
-                m_results.solutionFound = true;
-                m_results.numAgents = agentCount;
-            } else {
-                m_results.errorMessage = "Failed to convert " + m_algorithmName + " paths to standard format";
-            }
-        } else {
-            m_results.errorMessage = "Failed to parse " + m_algorithmName + " results";
-        }
-
-    } catch (const std::exception& e) {
-        m_results.errorMessage = m_algorithmName + " error: " + std::string(e.what());
-    }
+    m_engine.solveAsync(agents, env, mapName, std::move(buildInvocation),
+                        std::make_shared<LacamOutputParser>(m_algorithmName),
+                        std::move(outcomeToResults), tempDir, std::move(tempFileCallback));
 }
 
 bool LacamDriverBase::parseLacamOutput(std::istream& in, LacamResults& results) {
@@ -300,14 +148,6 @@ bool LacamDriverBase::parseLacamOutput(std::istream& in, LacamResults& results) 
     }
 
     return results.solutionFound;
-}
-
-bool LacamDriverBase::parseResults(const std::string& outputFile) {
-    std::ifstream file(outputFile);
-    if (!file.is_open()) {
-        return false;
-    }
-    return parseLacamOutput(file, m_results);
 }
 
 bool LacamDriverBase::convertLacamPaths(std::istream& inFile, std::ostream& outFile) {
@@ -400,17 +240,4 @@ bool LacamDriverBase::convertLacamPaths(std::istream& inFile, std::ostream& outF
     std::cout << "[LaCAM] Converted " << agentPaths.size() << " agent paths, max timestep: " << maxTimeStep << std::endl;
 
     return true;
-}
-
-bool LacamDriverBase::convertLacamPathsToStandard(const std::string& lacamOutputFile,
-                                                  const std::string& standardPathFile) {
-    std::ifstream inFile(lacamOutputFile);
-    if (!inFile.is_open()) {
-        return false;
-    }
-    std::ofstream outFile(standardPathFile);
-    if (!outFile.is_open()) {
-        return false;
-    }
-    return convertLacamPaths(inFile, outFile);
 }

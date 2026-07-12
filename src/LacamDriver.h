@@ -1,14 +1,13 @@
 #pragma once
 
+#include <functional>
 #include <iosfwd>
 #include <string>
 #include <vector>
-#include <thread>
-#include <atomic>
-#include <functional>
-#include "Types.h"
+
 #include "Environment.h"
-#include "ProcessRunner.h"
+#include "ExternalSolverDriver.h"
+#include "Types.h"
 
 // LaCAM Parameter Structure
 struct LacamParameters
@@ -42,12 +41,14 @@ struct LacamResults
     int sumOfLossLowerBound = -1;
 };
 
-// Base LaCAM Driver Class
+// Base LaCAM driver: a thin adapter over the shared ExternalSolverDriver
+// engine (plan 3.4 item 2). Owns only the LaCAM-specific parts: the command
+// line (InvocationBuilder) and the output parsing (LacamOutputParser).
 class LacamDriverBase
 {
 public:
     LacamDriverBase(const std::string& executablePath, const std::string& algorithmName);
-    virtual ~LacamDriverBase();
+    virtual ~LacamDriverBase() = default;
 
     // Main solve method
     void solveAsync(const std::vector<Agent>& agents,
@@ -59,14 +60,14 @@ public:
                     std::function<void(const std::string&)> tempFileCallback = nullptr);
 
     // Solver executable path ("" = not configured)
-    void setExecutablePath(const std::string& path) { m_executablePath = path; }
-    const std::string& getExecutablePath() const { return m_executablePath; }
+    void setExecutablePath(const std::string& path) { m_engine.setExecutablePath(path); }
+    const std::string& getExecutablePath() const { return m_engine.getExecutablePath(); }
 
     // Status checking
-    bool isRunning() const { return m_isRunning.load(); }
-    void cancel();
+    bool isRunning() const { return m_engine.isRunning(); }
+    void cancel() { m_engine.cancel(); }
 
-    // Results access
+    // Results access (last completed run)
     const LacamResults& getResults() const { return m_results; }
 
     // Algorithm name
@@ -82,45 +83,18 @@ public:
     // false when no positions could be extracted.
     static bool convertLacamPaths(std::istream& in, std::ostream& out);
 
-protected:
-    std::string m_executablePath;
-    std::string m_algorithmName;
-
 private:
-    ProcessRunner m_runner;
-    std::atomic<bool> m_isRunning{false};
-    std::atomic<bool> m_shouldCancel{false};
-    std::thread m_solverThread;
+    static std::string hexConfigString(const Environment& env);
+    static std::string toLower(const std::string& s);
+
+    std::string m_algorithmName;
+    ExternalSolverDriver m_engine;
     LacamResults m_results;
-    std::string m_currentMapName;
-    std::string m_tempDir;
-    std::function<void(const std::string&)> m_tempFileCallback;
-
-    // File generation methods
-    void generateMapFile(const Environment& env, const std::string& filename);
-    void generateScenarioFile(const std::vector<Agent>& agents, const Environment& env,
-                              const std::string& filename);
-
-    // LaCAM execution
-    void executeLacam(const std::vector<Agent>& agents,
-                      const Environment& env,
-                      const LacamParameters& params,
-                      const std::string& mapName,
-                      const std::string& tempDir,
-                      std::function<void(const std::string&)> tempFileCallback);
-
-    // Result parsing
-    bool parseResults(const std::string& outputFile);
-    bool convertLacamPathsToStandard(const std::string& lacamOutputFile,
-                                     const std::string& standardPathFile);
-
-    // Utility methods
-    std::string getHexConfigString(const Environment& env) const;
 };
 
 // Specific driver classes for each LaCAM variant. Executable paths are not
-// hardcoded: they come from the 'solvers' section of env.yaml via
-// setExecutablePath(); an empty path means "not configured".
+// hardcoded: they come from the solver manifest via setExecutablePath();
+// an empty path means "not configured".
 class LacamDriver : public LacamDriverBase
 {
 public:

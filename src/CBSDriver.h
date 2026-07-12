@@ -1,14 +1,13 @@
 #pragma once
 
+#include <functional>
 #include <iosfwd>
 #include <string>
 #include <vector>
-#include <thread>
-#include <atomic>
-#include <functional>
-#include "Types.h"
+
 #include "Environment.h"
-#include "ProcessRunner.h"
+#include "ExternalSolverDriver.h"
+#include "Types.h"
 
 // CBS Parameter Structure
 struct CBSParameters
@@ -45,15 +44,17 @@ struct CBSResults
     int highLevelNodes = 0;
     int lowLevelNodes = 0;
     std::string errorMessage = "";
-    std::string pathsFile = "";  // Path to the generated paths file
+    std::string pathsFile = ""; // Path to the generated paths file
 };
 
-// CBS Driver Class
+// CBS driver: a thin adapter over the shared ExternalSolverDriver engine
+// (plan 3.4 item 2). Owns only the CBS-specific parts: the command line
+// (InvocationBuilder) and the results-CSV parsing (Cbsh2CsvParser).
 class CBSDriver
 {
 public:
     CBSDriver();
-    ~CBSDriver();
+    ~CBSDriver() = default;
 
     // Main solve method
     void solveAsync(const std::vector<Agent> &agents,
@@ -65,14 +66,14 @@ public:
                     std::function<void(const std::string &)> tempFileCallback = nullptr);
 
     // Solver executable path ("" = not configured)
-    void setExecutablePath(const std::string &path) { m_executablePath = path; }
-    const std::string &getExecutablePath() const { return m_executablePath; }
+    void setExecutablePath(const std::string &path) { m_engine.setExecutablePath(path); }
+    const std::string &getExecutablePath() const { return m_engine.getExecutablePath(); }
 
     // Status checking
-    bool isRunning() const { return m_isRunning.load(); }
-    void cancel();
+    bool isRunning() const { return m_engine.isRunning(); }
+    void cancel() { m_engine.cancel(); }
 
-    // Results access
+    // Results access (last completed run)
     const CBSResults &getResults() const { return m_results; }
 
     // Parse a CBSH2-RTC results CSV stream (header + one row per restart;
@@ -81,32 +82,6 @@ public:
     static bool parseResultsCsv(std::istream &in, CBSResults &results);
 
 private:
-    std::string m_executablePath; // empty = not configured
-    ProcessRunner m_runner;
-    std::atomic<bool> m_isRunning{false};
-    std::atomic<bool> m_shouldCancel{false};
-    std::thread m_solverThread;
+    ExternalSolverDriver m_engine;
     CBSResults m_results;
-    std::string m_currentMapName;
-    std::string m_tempDir;
-    std::function<void(const std::string &)> m_tempFileCallback;
-
-    // File generation methods
-    void generateMapFile(const Environment &env, const std::string &filename);
-    void generateScenarioFile(const std::vector<Agent> &agents, const Environment &env,
-                              const std::string &filename);
-
-    // CBS execution
-    void executeCBS(const std::vector<Agent> &agents,
-                    const Environment &env,
-                    const CBSParameters &params,
-                    const std::string &mapName,
-                    const std::string &tempDir,
-                    std::function<void(const std::string &)> tempFileCallback);
-
-    // Result parsing
-    bool parseResults(const std::string &csvFile);
-
-    // Utility methods
-    std::string getGridConfigString(const Environment &env) const;
 };
