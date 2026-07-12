@@ -1,0 +1,14 @@
+# OpenMAPF C++ style (LLVM base, 4-space indent to match the existing code).
+# Enforcement (reformat + CI format-check job) lands with the CI milestone.
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 100
+AccessModifierOffset: -4
+AllowShortFunctionsOnASingleLine: Inline
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  AfterClass: true
+  AfterStruct: true
+PointerAlignment: Left
+SortIncludes: CaseSensitive
