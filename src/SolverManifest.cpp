@@ -27,6 +27,8 @@ bool SolverManifest::loadFromFile(const std::string& path)
 {
     try {
         YAML::Node root = YAML::LoadFile(path);
+        const std::filesystem::path baseDir =
+            std::filesystem::absolute(path).parent_path();
         const YAML::Node& solvers = root["solvers"];
         if (!solvers || !solvers.IsSequence()) {
             std::cerr << "Warning: solver manifest '" << path
@@ -47,9 +49,15 @@ bool SolverManifest::loadFromFile(const std::string& path)
             }
 
             entry->name = node["name"].as<std::string>(entry->name);
-            const std::string exec = node["executable"].as<std::string>("");
+            std::string exec = node["executable"].as<std::string>("");
             if (!exec.empty()) {
-                entry->executable = exec;
+                // Relative paths are relative to the manifest file, so a
+                // manifest can ship next to its solver binaries.
+                std::filesystem::path p(exec);
+                if (!p.is_absolute()) {
+                    p = (baseDir / p).lexically_normal();
+                }
+                entry->executable = p.string();
             }
             if (node["grids"] && node["grids"].IsSequence()) {
                 entry->grids.clear();

@@ -31,8 +31,9 @@ public:
     // Merge entries from a solvers.yaml into this manifest. Known keys are
     // updated (an absent/empty 'executable' keeps the current value so a
     // template file never erases a configured path); unknown keys are
-    // appended. Returns false (leaving the manifest usable) on I/O or
-    // parse errors.
+    // appended. Relative executable paths are resolved against the
+    // manifest file's directory. Returns false (leaving the manifest
+    // usable) on I/O or parse errors.
     bool loadFromFile(const std::string& path);
 
     // Write the manifest as solvers.yaml (creates parent directories).

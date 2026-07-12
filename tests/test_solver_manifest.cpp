@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <fstream>
 
 #include "ConfigLocator.h"
 #include "Environment.h"
@@ -86,6 +87,25 @@ TEST_CASE("manifest load failures leave the manifest usable", "[manifest]")
     }
 
     CHECK(m.entries().size() == 4);
+}
+
+TEST_CASE("relative executables resolve against the manifest file", "[manifest]")
+{
+    TempDir dir;
+    const std::string path = dir.path() + "/solvers.yaml";
+    {
+        std::ofstream out(path);
+        out << "solvers:\n"
+            << "  - key: cbs\n"
+            << "    executable: ./bin/fake-cbs.sh\n"
+            << "  - key: lacam\n"
+            << "    executable: /abs/lacam\n";
+    }
+
+    auto m = SolverManifest::withDefaults();
+    REQUIRE(m.loadFromFile(path));
+    CHECK(m.executableFor("cbs") == dir.path() + "/bin/fake-cbs.sh");
+    CHECK(m.executableFor("lacam") == "/abs/lacam"); // absolute untouched
 }
 
 TEST_CASE("manifest save/load round-trips", "[manifest]")
