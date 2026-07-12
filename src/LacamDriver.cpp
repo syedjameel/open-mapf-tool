@@ -80,13 +80,12 @@ void LacamDriverBase::generateMapFile(const Environment& env, const std::string&
     file.close();
 }
 
-void LacamDriverBase::generateScenarioFile(const std::vector<Agent>& agents, const std::string& filename) {
+void LacamDriverBase::generateScenarioFile(const std::vector<Agent>& agents, const Environment& env,
+                                           const std::string& filename) {
     std::ofstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Cannot create scenario file: " + filename);
     }
-
-    file << "version 1\n";
 
     // Extract map filename from scenario filename
     std::string mapFilename = filename.substr(0, filename.find_last_of('.')) + ".map";
@@ -95,18 +94,7 @@ void LacamDriverBase::generateScenarioFile(const std::vector<Agent>& agents, con
         mapFilename = mapFilename.substr(lastSlash + 1);
     }
 
-    // Write agents with goals only
-    for (const auto& agent : agents) {
-        if (agent.hasGoal) {
-            file << "0\t"  // bucket (not used)
-                 << mapFilename << "\t"  // map file
-                 << "64" << "\t" << "64" << "\t"  // map dimensions (placeholder)
-                 << CoordUtils::x(agent.start) << "\t" << CoordUtils::y(agent.start) << "\t"  // start
-                 << CoordUtils::x(agent.goal) << "\t" << CoordUtils::y(agent.goal) << "\t"   // goal
-                 << "0.0\n";  // optimal length (placeholder)
-        }
-    }
-
+    MapFormat::writeScen(file, agents, mapFilename, env.m_cols, env.m_rows);
     file.close();
 }
 
@@ -171,7 +159,7 @@ void LacamDriverBase::executeLacam(const std::vector<Agent>& agents,
         }
 
         generateMapFile(env, mapFile);
-        generateScenarioFile(agents, scenFile);
+        generateScenarioFile(agents, env, scenFile);
 
         // Register temp files for cleanup if callback provided
         if (tempFileCallback) {

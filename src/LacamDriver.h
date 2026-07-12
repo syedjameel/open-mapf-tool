@@ -81,7 +81,8 @@ private:
 
     // File generation methods
     void generateMapFile(const Environment& env, const std::string& filename);
-    void generateScenarioFile(const std::vector<Agent>& agents, const std::string& filename);
+    void generateScenarioFile(const std::vector<Agent>& agents, const Environment& env,
+                              const std::string& filename);
 
     // LaCAM execution
     void executeLacam(const std::vector<Agent>& agents,

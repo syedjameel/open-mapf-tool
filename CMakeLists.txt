@@ -81,6 +81,7 @@ if(OPENMAPF_BUILD_TESTS)
     add_executable(openmapf_tests
         tests/test_environment.cpp
         tests/test_map_format.cpp
+        tests/test_scen_writer.cpp
         src/Environment.cpp
         src/MapFormat.cpp
     )

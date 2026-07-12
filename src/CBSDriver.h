@@ -80,7 +80,8 @@ private:
 
     // File generation methods
     void generateMapFile(const Environment &env, const std::string &filename);
-    void generateScenarioFile(const std::vector<Agent> &agents, const std::string &filename);
+    void generateScenarioFile(const std::vector<Agent> &agents, const Environment &env,
+                              const std::string &filename);
 
     // CBS execution
     void executeCBS(const std::vector<Agent> &agents,

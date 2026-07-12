@@ -1106,23 +1106,9 @@ void UIManager::saveScenarioFile(const std::string& filename)
         throw std::runtime_error("Cannot open file for writing: " + filename);
     }
     
-    file << "version 1\n";
-    
     // Extract just the map filename (without path)
     std::string mapFilename = m_currentMapName + ".map";
-    
-    for (const auto& agent : m_dynamicAgents)
-    {
-        if (agent.hasGoal)  // Only save agents with goals
-        {
-            file << agent.id << "\t" << mapFilename << "\t" 
-                 << m_env.m_cols << "\t" << m_env.m_rows << "\t"
-                 << CoordUtils::x(agent.start) << "\t" << CoordUtils::y(agent.start) << "\t"
-                 << CoordUtils::x(agent.goal) << "\t" << CoordUtils::y(agent.goal) << "\t"
-                 << "0\n";  // optimal_length placeholder
-        }
-    }
-    
+    MapFormat::writeScen(file, m_dynamicAgents, mapFilename, m_env.m_cols, m_env.m_rows);
     file.close();
     std::cout << "Scenario saved to: " << filename << std::endl;
 }
