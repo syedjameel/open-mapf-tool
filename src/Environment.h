@@ -18,15 +18,11 @@ class Environment
 public:
     size_t m_width{0};
     size_t m_height{0};
-    std::string m_name;
     bool m_square{false};
     bool m_hexagon{false};
 
     size_t m_rows{0};
     size_t m_cols{0};
-
-    size_t m_frame_rate{60};
-    float m_time_step{1};
 
     float m_tile_size{10};
 

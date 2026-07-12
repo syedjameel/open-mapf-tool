@@ -166,24 +166,6 @@ ImVec2 GridRenderer::gridToWorld(size_t x, size_t y, bool isHex, float tileSize,
     }
 }
 
-// This function is deprecated in favor of the more general pixelToHex function
-Coord GridRenderer::screenToHex_OddR(const ImVec2& mouse_pos, const ImVec2& origin, float scaled_tile)
-{
-    const float sqrt3 = std::sqrt(3.0f);
-
-    float px = mouse_pos.x - origin.x;
-    float py = mouse_pos.y - origin.y;
-
-    float row_f = py / (1.5f * scaled_tile);
-    int row = static_cast<int>(std::floor(row_f));
-
-    float row_offset = (row & 1) ? 0.5f : 0.0f;
-    float col_f = (px / (sqrt3 * scaled_tile)) - row_offset;
-    int col = static_cast<int>(std::floor(col_f));
-
-    return CoordUtils::make_coord(col, row);
-}
-
 Coord GridRenderer::pixelToHex(const ImVec2& pos, float tile_size, HexGridType gridType)
 {
     const float sqrt3 = 1.7320508f;

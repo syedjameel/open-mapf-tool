@@ -26,13 +26,10 @@ void Environment::setDefaults()
 {
     m_width = 1280;
     m_height = 720;
-    m_name = "default";
     m_square = true;
     m_hexagon = false;
     m_rows = 10;
     m_cols = 10;
-    m_frame_rate = 60;
-    m_time_step = 1.f;
     calculateTileSizes();
 
     // initialize a default map
@@ -55,13 +52,10 @@ bool Environment::loadConfig(const std::string& config_path)
         const YAML::Node& p = config["params"];
         m_width = p["width"].as<size_t>(m_width);
         m_height = p["height"].as<size_t>(m_height);
-        m_name = p["name"].as<std::string>(m_name);
         m_square = p["square"].as<bool>(m_square);
         m_hexagon = p["hexagon"].as<bool>(m_hexagon);
         m_rows = p["rows"].as<size_t>(m_rows);
         m_cols = p["cols"].as<size_t>(m_cols);
-        m_frame_rate = p["frame_rate"].as<size_t>(m_frame_rate);
-        m_time_step = p["time_step"].as<float>(m_time_step);
 
         // Optional solver executable paths (absent => solver unavailable,
         // reported clearly when the user tries to run it).

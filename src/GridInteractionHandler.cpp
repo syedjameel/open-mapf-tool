@@ -20,6 +20,10 @@ void GridInteractionHandler::handleInteraction(const ImVec2& mousePos, const ImV
     {
         float mouseX = (mousePos.x - origin.x + (scaledTile * 0.5f)) / scaledTile;
         float mouseY = (mousePos.y - origin.y + (scaledTile * 0.5f)) / scaledTile;
+        // Clicks left of / above the grid produce negative values; casting
+        // a negative float to size_t is undefined behavior, so reject first.
+        if (mouseX < 0.0f || mouseY < 0.0f)
+            return;
         col = static_cast<size_t>(mouseX);
         row = static_cast<size_t>(mouseY);
     }
@@ -31,6 +35,8 @@ void GridInteractionHandler::handleInteraction(const ImVec2& mousePos, const ImV
             (mousePos.y - origin.y) / zoom};
 
         Coord hexCoord = GridRenderer::pixelToHex(worldMousePos, tileSize, m_env.m_hex_grid_type);
+        if (CoordUtils::x(hexCoord) < 0 || CoordUtils::y(hexCoord) < 0)
+            return;
         col = static_cast<size_t>(CoordUtils::x(hexCoord));
         row = static_cast<size_t>(CoordUtils::y(hexCoord));
     }

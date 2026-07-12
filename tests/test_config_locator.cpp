@@ -119,13 +119,10 @@ TEST_CASE("Environment::loadConfig degrades gracefully", "[config]")
             "params:\n"
             "  width: 800\n"
             "  height: 600\n"
-            "  name: \"t\"\n"
             "  square: true\n"
             "  hexagon: false\n"
             "  rows: 7\n"
-            "  cols: 9\n"
-            "  frame_rate: 60\n"
-            "  time_step: 1\n",
+            "  cols: 9\n",
             ".yaml");
         Environment env;
         CHECK(env.loadConfig(good.path()));

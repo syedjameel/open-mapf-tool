@@ -26,7 +26,7 @@ private:
     bool m_touchDragging;
     ImVec2 m_touchDragStart;
     
-    static constexpr float ZOOM_MIN = -10.0f;
+    static constexpr float ZOOM_MIN = 0.05f; // must stay positive: 0 or negative zoom inverts/degenerates the view
     static constexpr float ZOOM_MAX = 10.0f;
     static constexpr float ZOOM_SPEED = 0.1f;
     static constexpr float SMOOTH_FACTOR = 0.15f;
