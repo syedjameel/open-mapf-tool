@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    name: build-test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ubuntu-22.04-gcc
+            os: ubuntu-22.04
+            cc: gcc
+            cxx: g++
+            experimental: false
+          - name: ubuntu-latest-clang
+            os: ubuntu-latest
+            cc: clang
+            cxx: clang++
+            experimental: false
+          # macOS is best-effort until verified on real hardware; promote to
+          # required once the first runs are green.
+          - name: macos-14
+            os: macos-14
+            cc: clang
+            cxx: clang++
+            experimental: true
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglfw3-dev libyaml-cpp-dev libgl1-mesa-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install glfw yaml-cpp
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DOPENMAPF_WERROR=ON
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Unit tests (headless)
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Integration - smoke experiment (headless, fake solver)
+        run: |
+          build/openmapf --version
+          build/openmapf run examples/smoke-experiment/experiment.yaml \
+              --solvers examples/smoke-experiment/solvers.yaml
+          count=$(grep -c ',solved$' examples/smoke-experiment/out/results.csv)
+          test "$count" -eq 24
+          grep -q 'tool_version' examples/smoke-experiment/out/manifest.yaml
+
+      - name: Integration - resume semantics
+        run: |
+          # Without --resume a non-empty results.csv must be refused (exit 2)
+          if build/openmapf run examples/smoke-experiment/experiment.yaml \
+              --solvers examples/smoke-experiment/solvers.yaml; then
+            echo "expected refusal without --resume" && exit 1
+          fi
+          # With --resume everything is already done
+          build/openmapf run examples/smoke-experiment/experiment.yaml --resume \
+              --solvers examples/smoke-experiment/solvers.yaml
+
+      - name: Integration - plots from the results CSV
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --quiet pandas matplotlib
+          .venv/bin/python scripts/openmapf-plot examples/smoke-experiment/out/results.csv
+          test -f examples/smoke-experiment/out/success_rate_vs_agents.png
+          test -f examples/smoke-experiment/out/runtime_cactus.png
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: clang-format check (pinned 18.1.8, matches the committed style)
+        run: |
+          python3 -m venv cfenv
+          cfenv/bin/pip install --quiet clang-format==18.1.8
+          files=$(ls src/*.cpp src/*.h tests/*.cpp tests/*.h | grep -v imfilebrowser)
+          cfenv/bin/clang-format --dry-run -Werror $files
+
+  sanitize:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglfw3-dev libyaml-cpp-dev libgl1-mesa-dev
+      - name: Configure (ASan + UBSan)
+        run: cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DOPENMAPF_SANITIZE=ON
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Unit tests under sanitizers
+        run: ctest --test-dir build --output-on-failure
+      - name: Smoke experiment under sanitizers
+        run: |
+          build/openmapf run examples/smoke-experiment/experiment.yaml \
+              --solvers examples/smoke-experiment/solvers.yaml
