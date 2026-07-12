@@ -47,4 +47,46 @@ void writeMap(std::ostream& out, const Grid<int>& grid, std::size_t cols, std::s
 void writeScen(std::ostream& out, const std::vector<Agent>& agents,
                const std::string& mapFilename, std::size_t cols, std::size_t rows);
 
+// ---------------------------------------------------------------------------
+// MovingAI .scen (version 1) reading — accepts the standard benchmark
+// scenario suites (Stern et al. 2019). Coordinates: x = column (0 = left),
+// y = row (0 = top), matching the tool's internal (col, row) convention.
+// ---------------------------------------------------------------------------
+
+struct ScenEntry {
+    int bucket = 0;
+    std::string mapName;       // map file name the scenario was made for
+    std::size_t mapWidth = 0;  // dimensions the scenario declares
+    std::size_t mapHeight = 0;
+    int startX = 0, startY = 0;
+    int goalX = 0, goalY = 0;
+    double optimalLength = 0.0;
+};
+
+struct ScenFile {
+    std::vector<ScenEntry> entries;
+    std::size_t malformedLines = 0; // skipped, not fatal
+};
+
+// Parse a .scen stream. The "version ..." header is optional (very old
+// suites lack it); fields are whitespace-separated; CRLF is tolerated.
+ScenFile readScen(std::istream& in);
+
+// Convenience wrapper; throws std::runtime_error if the file cannot be read.
+ScenFile loadScenFile(const std::string& path);
+
+// Result of turning scen entries into placeable agents for a given grid.
+struct ScenSelection {
+    std::vector<Agent> agents;           // first maxAgents usable entries, ids 0..k-1
+    std::size_t skippedOutOfBounds = 0;  // start/goal outside the grid
+    std::size_t skippedBlocked = 0;      // start/goal on blocked terrain
+    std::size_t skippedDuplicate = 0;    // start (or goal) cell already taken
+    bool dimensionMismatch = false;      // scen declares different map dims
+};
+
+// Select the first `maxAgents` entries that fit the given grid, the way
+// benchmark users expect ("run the first k agents of the scenario").
+ScenSelection selectAgents(const std::vector<ScenEntry>& entries, const Grid<int>& grid,
+                           std::size_t cols, std::size_t rows, std::size_t maxAgents);
+
 } // namespace MapFormat

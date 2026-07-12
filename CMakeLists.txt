@@ -171,6 +171,7 @@ if(OPENMAPF_BUILD_TESTS)
         tests/test_environment.cpp
         tests/test_map_format.cpp
         tests/test_process_runner.cpp
+        tests/test_scen_reader.cpp
         tests/test_scen_writer.cpp
         tests/test_solver_driver.cpp
         tests/test_solver_integration.cpp
@@ -180,6 +181,10 @@ if(OPENMAPF_BUILD_TESTS)
     target_link_libraries(openmapf_tests PRIVATE
         openmapf_core
         Catch2::Catch2WithMain
+    )
+
+    target_compile_definitions(openmapf_tests PRIVATE
+        OPENMAPF_TEST_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures"
     )
 
     list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
