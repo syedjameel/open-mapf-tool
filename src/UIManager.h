@@ -74,6 +74,9 @@ private:
     // File dialogs
     ImGui::FileBrowser m_fileDialog;
     ImGui::FileBrowser m_pathsFileDialog;
+    ImGui::FileBrowser m_solverExeDialog;
+    int m_solverExeTarget = -1;    // manifest entry being browsed for
+    std::string m_solverSaveStatus;
     
     // References to other components
     Environment& m_env;
@@ -124,6 +127,7 @@ private:
     
     // UI rendering methods
     void renderMapTab();
+    void renderSolversTab();
     void renderAlgorithmTab();
     void renderGridSizeTab();
     void renderPathsTab();

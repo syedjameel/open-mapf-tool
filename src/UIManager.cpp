@@ -1,4 +1,5 @@
 #include "UIManager.h"
+#include "ConfigLocator.h"
 #include "GridRenderer.h"
 #include "MapFormat.h"
 #include <unistd.h> // ::getpid
@@ -76,6 +77,7 @@ void UIManager::setupFileDialogs()
     m_fileDialog.SetTypeFilters({".map"});
     m_pathsFileDialog.SetTitle("Load Paths");
     m_pathsFileDialog.SetTypeFilters({".txt"});
+    m_solverExeDialog.SetTitle("Select solver executable");
 }
 
 void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_pos, const ImVec2& canvas_size, const ImVec2& origin, float zoom)
@@ -307,6 +309,12 @@ void UIManager::renderControlPanel()
         if (ImGui::BeginTabItem("Grid & Size"))
         {
             renderGridSizeTab();
+            ImGui::EndTabItem();
+        }
+
+        if (ImGui::BeginTabItem("Solvers"))
+        {
+            renderSolversTab();
             ImGui::EndTabItem();
         }
         
@@ -784,6 +792,18 @@ void UIManager::handleFileDialogs()
         }
         m_pathsFileDialog.ClearSelected();
     }
+
+    m_solverExeDialog.Display();
+    if (m_solverExeDialog.HasSelected())
+    {
+        auto& entries = m_solvers.entries();
+        if (m_solverExeTarget >= 0 && m_solverExeTarget < static_cast<int>(entries.size()))
+        {
+            entries[m_solverExeTarget].executable = m_solverExeDialog.GetSelected().string();
+        }
+        m_solverExeTarget = -1;
+        m_solverExeDialog.ClearSelected();
+    }
 }
 
 void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& origin, float zoom, bool isHovered, bool isLeftClicked)
@@ -1127,6 +1147,86 @@ void UIManager::reassignAgentIDs()
     m_nextAgentId = m_dynamicAgents.size();
 }
 
+
+void UIManager::renderSolversTab()
+{
+    ImGui::Spacing();
+    ImGui::TextWrapped(
+        "External solver executables. Configure a path per solver here or in "
+        "solvers.yaml (run 'openmapf --help' for the search locations). "
+        "Solvers without a valid executable are reported as unavailable when run.");
+    ImGui::Separator();
+
+    auto& entries = m_solvers.entries();
+    for (int i = 0; i < static_cast<int>(entries.size()); ++i)
+    {
+        SolverEntry& entry = entries[i];
+        ImGui::PushID(i);
+
+        // Status indicator: green = found, red = configured but missing,
+        // gray = not configured.
+        if (entry.executable.empty()) {
+            ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "[not configured]");
+        } else if (std::filesystem::exists(entry.executable)) {
+            ImGui::TextColored(ImVec4(0.2f, 0.9f, 0.2f, 1.0f), "[found]");
+        } else {
+            ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "[missing]");
+        }
+        ImGui::SameLine();
+        ImGui::Text("%s", entry.name.c_str());
+        ImGui::SameLine();
+        ImGui::TextDisabled("(%s)", entry.key.c_str());
+
+        char buf[1024];
+        std::snprintf(buf, sizeof(buf), "%s", entry.executable.c_str());
+        ImGui::SetNextItemWidth(-90.0f);
+        if (ImGui::InputText("##exe", buf, sizeof(buf)))
+        {
+            entry.executable = buf;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Browse..."))
+        {
+            m_solverExeTarget = i;
+            m_solverExeDialog.Open();
+        }
+
+        if (!entry.grids.empty())
+        {
+            std::string grids;
+            for (const auto& g : entry.grids)
+            {
+                if (!grids.empty()) grids += ", ";
+                grids += g;
+            }
+            ImGui::TextDisabled("grids: %s", grids.c_str());
+        }
+
+        ImGui::Separator();
+        ImGui::PopID();
+    }
+
+    if (ImGui::Button("Save solver paths"))
+    {
+        std::string dir = ConfigLocator::userConfigDir(ConfigLocator::systemInputs("", nullptr));
+        if (dir.empty())
+        {
+            m_solverSaveStatus = "Cannot determine the user config directory "
+                                 "($XDG_CONFIG_HOME/$HOME unset).";
+        }
+        else
+        {
+            std::string path = dir + "/solvers.yaml";
+            m_solverSaveStatus = m_solvers.saveToFile(path)
+                                     ? "Saved to " + path
+                                     : "Failed to save " + path;
+        }
+    }
+    if (!m_solverSaveStatus.empty())
+    {
+        ImGui::TextWrapped("%s", m_solverSaveStatus.c_str());
+    }
+}
 
 void UIManager::renderResultsTab()
 {
