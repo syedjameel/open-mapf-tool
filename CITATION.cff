@@ -1,0 +1,34 @@
+# Citation metadata (Citation File Format 1.2.0).
+# After the first Zenodo deposit, add the version DOI here as
+#   doi: 10.5281/zenodo.XXXXXXX
+# and set date-released -- see docs/RELEASING.md.
+cff-version: 1.2.0
+message: "If you use OpenMAPF in your research, please cite it using this metadata."
+type: software
+title: "OpenMAPF"
+abstract: >-
+  An interactive tool for visualizing and benchmarking Multi-Agent Path
+  Finding (MAPF) on square and hexagonal grids: MovingAI-format map and
+  scenario editing, pluggable external solvers (CBSH2-RTC family,
+  LaCAM 1/2/3), solution animation, and a headless, resumable batch
+  experiment pipeline with a stable results schema and standard plots.
+authors:
+  - family-names: "Syed"
+    given-names: "Jameel Ahmed"
+  - family-names: "Damindarov"
+    given-names: "Ruslan"
+  - family-names: "Sobeh"
+    given-names: "Yehia"
+  - family-names: "Maloletov"
+    given-names: "Alexander"
+version: "0.1.0"
+repository-code: "https://github.com/syedjameel/open-mapf-tool"
+license: MIT
+keywords:
+  - "multi-agent path finding"
+  - "MAPF"
+  - "visualization"
+  - "benchmarking"
+  - "hexagonal grids"
+  - "CBS"
+  - "LaCAM"

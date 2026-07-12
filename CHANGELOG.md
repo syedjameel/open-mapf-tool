@@ -1,0 +1,76 @@
+# Changelog
+
+All notable changes to OpenMAPF are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
+uses [Semantic Versioning](https://semver.org/).
+
+## [0.1.0] — unreleased
+
+First publication-ready release, superseding the pre-hardening prototype
+(kept as an internal baseline tag).
+
+### Added
+- **Batch experiment pipeline** (`openmapf run experiment.yaml`): headless,
+  matrix expansion (solvers × instances × grids × agents × seeds),
+  deterministic shuffled run order, bounded parallel workers, per-run
+  hard-timeout kill, crash-safe append-only results CSV with
+  resume-by-key, per-experiment provenance `manifest.yaml`; minimal GUI
+  Experiments panel; `scripts/openmapf-plot` (success-rate and
+  runtime-cactus figures); bundled no-solver smoke example
+  (`examples/smoke-experiment/`).
+- **MovingAI `.scen` loading** (Stern benchmark suites) with "first k
+  agents" selection and per-reason skip reporting; two authentic sample
+  scenario files bundled with attribution.
+- **Results CSV export** with a stable, documented schema
+  (incl. `tool_version` and `status`).
+- **Solver manifest** (`solvers.yaml`): configure solver executables
+  without recompiling; GUI Solvers tab with found/missing indicators and
+  file picker; `scripts/get-solvers.sh` to fetch and build the reference
+  solvers; discovery via CLI flag → env var → XDG → exe-relative paths.
+- **CLI**: `--config`, `--version`, `--help`; `run` subcommand with
+  `--jobs/--resume/--dry-run/--solvers` and documented exit codes.
+- **Quality infrastructure**: 68 headless test cases (642 assertions,
+  Catch2 via FetchContent) incl. fixture-based parser tests and
+  fake-solver integration tests; GitHub Actions CI (Linux gcc/clang +
+  best-effort macOS, integration steps, clang-format check, ASan/UBSan
+  job); `install` target and TGZ/DEB packages (CPack); `-Wall -Wextra`
+  clean with `OPENMAPF_WERROR`; `OPENMAPF_SANITIZE` option.
+- **Docs**: user guide, batch-experiments guide, precise file-format
+  grammars (incl. coordinate conventions), extending guide, releasing
+  guide, rewritten README; CONTRIBUTING, Code of Conduct, issue/PR
+  templates; third-party notices; this changelog; citation metadata.
+
+### Fixed
+- MovingAI terrain codes `T`/`S`/`W`/`O` were silently converted to free
+  space on save, corrupting benchmark maps; all terrain now round-trips
+  and blocks agents. CRLF maps no longer leak `\r` into the grid.
+- Generated `.scen` files wrote hardcoded `64 64` dimensions.
+- App crashed unless launched from `build/` (config was loaded from a
+  relative path in a member initializer); config discovery is now robust
+  and failures degrade to defaults with a warning.
+- Cancelling a solver only set a flag while the process kept running;
+  cancel now kills the child process. Solver commands no longer pass
+  through a shell (user-typed map names could break/inject the command).
+- Solver results were applied to GUI state from the solver thread (data
+  race); results are now marshaled to the GUI thread.
+- Temp-file cleanup could delete user files matching a pattern in the
+  working directory; cleanup is now limited to tracked files in a
+  dedicated system temp directory.
+- CBS path auto-loading depended on an unrelated UI checkbox, silently
+  transposing coordinates.
+- Negative-coordinate clicks caused undefined behavior (float→size_t);
+  zoom could go negative; unused `GL/glew.h` include broke builds on
+  machines without GLEW headers.
+
+### Changed
+- Core logic (formats, drivers, config, experiments) split into a
+  headless `openmapf_core` library, separate from the GUI executable.
+- Both solver drivers unified over one `ExternalSolverDriver` engine with
+  small per-format `ISolutionParser` classes — the documented extension
+  point for new solvers.
+- Hardcoded solver paths (`../algorithms/...`) replaced by the solver
+  manifest; window size honors the config; version shown in the window
+  title and `--version` (generated `Version.h`).
+- Whole tree formatted with clang-format 18 (enforced in CI); dead code
+  removed (unused render cache, path optimizer, deprecated hex
+  conversion, unused config keys).

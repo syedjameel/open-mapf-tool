@@ -38,11 +38,9 @@ citations and source URLs.
 OpenMAPF drives external solver executables that users obtain and build
 themselves (`scripts/get-solvers.sh` clones them from upstream so users
 accept upstream terms directly). They are not part of this repository or of
-any OpenMAPF release artifact:
-
-OpenMAPF invokes them as separate processes (no linking), so their licenses
-do not affect OpenMAPF's MIT terms; they matter to anyone redistributing
-the solvers themselves:
+any OpenMAPF release artifact, and they run as separate processes (no
+linking), so their licenses do not affect OpenMAPF's MIT terms; they matter
+to anyone redistributing the solvers themselves:
 
 - LaCAM / LaCAM2 / LaCAM3 (Keisuke Okumura) — MIT.
 - CBSH2-RTC (Jiaoyang Li et al.) — University of Southern California
