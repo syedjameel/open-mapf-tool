@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <iostream>
@@ -26,7 +27,11 @@ void printUsage(const char* argv0)
         << "  4. <exe dir>/../share/openmapf/env.yaml\n"
         << "  5. <exe dir>/../config/env.yaml\n"
         << "  6. <exe dir>/config/env.yaml\n"
-        << "If no config is found, built-in defaults are used.\n";
+        << "If no config is found, built-in defaults are used.\n\n"
+        << "The solver manifest (solvers.yaml) is discovered through the same\n"
+        << "locations (override with $OPENMAPF_SOLVERS). It lists the external\n"
+        << "solver executables; solvers without a configured executable are\n"
+        << "shown as unavailable in the GUI.\n";
 }
 
 } // namespace
@@ -73,6 +78,21 @@ int main(int argc, char** argv)
                   << "(see --help for the search order)." << std::endl;
     }
 
-    ImGuiMapfApp app(configPath.value_or(""));
+    // Solver manifest: same discovery chain, $OPENMAPF_SOLVERS override
+    auto solversInputs = ConfigLocator::systemInputs("", argv[0]);
+    const char* solversEnv = std::getenv("OPENMAPF_SOLVERS");
+    solversInputs.envPath = solversEnv != nullptr ? solversEnv : "";
+    auto solversPath = ConfigLocator::resolve(
+        solversInputs,
+        [](const std::string& p) {
+            std::error_code ec;
+            return std::filesystem::is_regular_file(p, ec);
+        },
+        "solvers.yaml");
+    if (solversPath) {
+        std::cout << "Using solver manifest: " << *solversPath << std::endl;
+    }
+
+    ImGuiMapfApp app(configPath.value_or(""), solversPath.value_or(""));
     return app.run();
 }

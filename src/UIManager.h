@@ -8,6 +8,7 @@
 #include "Types.h"
 #include "CBSDriver.h"
 #include "LacamDriver.h"
+#include "SolverManifest.h"
 #include <vector>
 #include <string>
 #include <memory>
@@ -19,7 +20,8 @@
 
 class UIManager {
 public:
-    UIManager(Environment& env, PathManager& pathManager, AnimationController& animController);
+    UIManager(Environment& env, PathManager& pathManager, AnimationController& animController,
+              SolverManifest& solverManifest);
     ~UIManager(); // Destructor for cleanup
     
     void setupStyle();
@@ -77,6 +79,7 @@ private:
     Environment& m_env;
     PathManager& m_pathManager;
     AnimationController& m_animController;
+    SolverManifest& m_solvers;
     
     // Algorithm selection
     std::vector<std::string> m_algoNames = {"CBS", "LaCAM", "LaCAM2", "LaCAM3"};

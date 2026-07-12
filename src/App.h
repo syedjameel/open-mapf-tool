@@ -5,6 +5,7 @@
 #include "imgui_impl_opengl3.h"
 #include "Environment.h"
 #include "PathManager.h"
+#include "SolverManifest.h"
 #include "AnimationController.h"
 #include "UIManager.h"
 #include "ViewportManager.h"
@@ -13,8 +14,19 @@
 class ImGuiMapfApp
 {
 public:
-    // configPath: resolved config file path, or "" for built-in defaults.
-    explicit ImGuiMapfApp(const std::string& configPath = "") : m_env(configPath) {}
+    // configPath / solversPath: resolved config file paths ("" = defaults).
+    explicit ImGuiMapfApp(const std::string& configPath = "",
+                          const std::string& solversPath = "")
+        : m_env(configPath)
+    {
+        m_solverManifest = SolverManifest::withDefaults();
+        // Precedence: solvers.yaml wins; legacy env.yaml 'solvers' keys
+        // fill entries the manifest leaves unconfigured.
+        m_solverManifest.applyLegacyEnvironment(m_env);
+        if (!solversPath.empty()) {
+            m_solverManifest.loadFromFile(solversPath);
+        }
+    }
 
     // Returns a process exit code (0 on success).
     int run();
@@ -22,9 +34,10 @@ public:
 private:
     // Core components
     Environment m_env;
+    SolverManifest m_solverManifest;
     PathManager m_pathManager;
     AnimationController m_animController;
-    UIManager m_uiManager{m_env, m_pathManager, m_animController};
+    UIManager m_uiManager{m_env, m_pathManager, m_animController, m_solverManifest};
     ViewportManager m_viewportManager;
     GridInteractionHandler m_gridInteractionHandler{m_env};
     

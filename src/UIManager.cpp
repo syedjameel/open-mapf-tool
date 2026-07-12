@@ -6,8 +6,10 @@
 #include <fstream>
 #include <cstring>
 
-UIManager::UIManager(Environment& env, PathManager& pathManager, AnimationController& animController)
-    : m_env(env), m_pathManager(pathManager), m_animController(animController)
+UIManager::UIManager(Environment& env, PathManager& pathManager, AnimationController& animController,
+                     SolverManifest& solverManifest)
+    : m_env(env), m_pathManager(pathManager), m_animController(animController),
+      m_solvers(solverManifest)
 {
     setupFileDialogs();
 }
@@ -1186,9 +1188,9 @@ void UIManager::startCBSSolver()
     m_cbsStartTime = std::chrono::steady_clock::now();
     m_cbsResults = CBSResults(); // Reset results
     
-    // Solver executable comes from the config (empty = not configured;
+    // Solver executable comes from the manifest (empty = not configured;
     // the driver reports a clear error instead of running)
-    m_cbsDriver.setExecutablePath(m_env.m_solver_cbs);
+    m_cbsDriver.setExecutablePath(m_solvers.executableFor("cbs"));
 
     // Use temp directory and register temp files for cleanup
     std::string tempDir = getTempDirectory();
@@ -1545,13 +1547,13 @@ void UIManager::startLacamSolver()
     LacamDriverBase* driver = nullptr;
     if (m_selectedAlgo == 1) {
         driver = &m_lacamDriver;
-        driver->setExecutablePath(m_env.m_solver_lacam);
+        driver->setExecutablePath(m_solvers.executableFor("lacam"));
     } else if (m_selectedAlgo == 2) {
         driver = &m_lacam2Driver;
-        driver->setExecutablePath(m_env.m_solver_lacam2);
+        driver->setExecutablePath(m_solvers.executableFor("lacam2"));
     } else if (m_selectedAlgo == 3) {
         driver = &m_lacam3Driver;
-        driver->setExecutablePath(m_env.m_solver_lacam3);
+        driver->setExecutablePath(m_solvers.executableFor("lacam3"));
     } else {
         m_lacamRunning = false;
         return;

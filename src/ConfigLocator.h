@@ -25,18 +25,28 @@ struct Inputs {
 };
 
 // Candidate config paths in priority order (pure function, unit-tested).
-std::vector<std::string> candidatePaths(const Inputs& in);
+// `fileName` selects which file is being discovered within the same
+// locations (e.g. "env.yaml", "solvers.yaml").
+std::vector<std::string> candidatePaths(const Inputs& in,
+                                        const std::string& fileName = "env.yaml");
 
 // First candidate for which `exists` returns true, or nullopt.
 std::optional<std::string> resolve(const Inputs& in,
-                                   const std::function<bool(const std::string&)>& exists);
+                                   const std::function<bool(const std::string&)>& exists,
+                                   const std::string& fileName = "env.yaml");
+
+// ${XDG_CONFIG_HOME:-$HOME/.config}/openmapf — where user-edited config
+// files are written (pure function; empty when neither variable is set).
+std::string userConfigDir(const Inputs& in);
 
 // Directory containing the running executable (via /proc/self/exe with an
 // argv[0] fallback); empty string if it cannot be determined.
 std::string executableDirectory(const char* argv0);
 
-// Production wrapper: gathers Inputs from the real process environment and
-// checks the filesystem.
-std::optional<std::string> resolveFromSystem(const std::string& cliPath, const char* argv0);
+// Production wrappers: gather Inputs from the real process environment and
+// check the filesystem.
+Inputs systemInputs(const std::string& cliPath, const char* argv0);
+std::optional<std::string> resolveFromSystem(const std::string& cliPath, const char* argv0,
+                                             const std::string& fileName = "env.yaml");
 
 } // namespace ConfigLocator

@@ -1,0 +1,28 @@
+# OpenMAPF solver manifest.
+#
+# Each entry describes an external solver executable the tool can drive.
+# Leave 'executable' empty (or delete the line) if the solver is not
+# installed -- the GUI shows it as unavailable and explains how to set it,
+# instead of failing cryptically. Paths can also be set from the GUI
+# ("Solvers" tab), which saves an edited copy of this file to
+# ${XDG_CONFIG_HOME:-~/.config}/openmapf/solvers.yaml.
+#
+# scripts/get-solvers.sh clones and builds the reference solvers and fills
+# in these paths automatically.
+solvers:
+  - key: cbs
+    name: CBSH2-RTC-CHBP-HEX
+    executable: ""
+    grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]
+  - key: lacam
+    name: LaCAM (hex fork)
+    executable: ""
+    grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]
+  - key: lacam2
+    name: LaCAM2 (hex fork)
+    executable: ""
+    grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]
+  - key: lacam3
+    name: LaCAM3 (hex fork)
+    executable: ""
+    grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]

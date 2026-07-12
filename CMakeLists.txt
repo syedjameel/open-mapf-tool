@@ -55,6 +55,7 @@ add_library(openmapf_core STATIC
     src/MapFormat.cpp
     src/PathManager.cpp
     src/ProcessRunner.cpp
+    src/SolverManifest.cpp
 )
 
 # Generated version header (OPENMAPF_VERSION), available to all targets
@@ -131,7 +132,7 @@ install(TARGETS openmapf
 
 # Installed next to bin/ so the exe-relative config discovery
 # (<exe dir>/../share/openmapf/env.yaml) finds it out of the box.
-install(FILES config/env.yaml
+install(FILES config/env.yaml config/solvers.yaml
     DESTINATION ${CMAKE_INSTALL_DATADIR}/openmapf
 )
 
@@ -173,6 +174,7 @@ if(OPENMAPF_BUILD_TESTS)
         tests/test_scen_writer.cpp
         tests/test_solver_driver.cpp
         tests/test_solver_integration.cpp
+        tests/test_solver_manifest.cpp
     )
 
     target_link_libraries(openmapf_tests PRIVATE
