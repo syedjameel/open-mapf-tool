@@ -1,0 +1,16 @@
+agents=3
+map_file=itest_1.map
+solver=LaCAM
+solved=1
+soc=12
+soc_lb=10
+makespan=2
+makespan_lb=2
+sum_of_loss=12
+sum_of_loss_lb=10
+comp_time=250
+seed=0
+solution=
+0:(0,0),(1,1),(2,2),
+1:(1,0),(2,1),(2,3),
+2:(1,1),(2,2),(2,1),

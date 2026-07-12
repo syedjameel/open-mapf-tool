@@ -237,50 +237,53 @@ void CBSDriver::executeCBS(const std::vector<Agent>& agents,
     }
 }
 
-bool CBSDriver::parseResults(const std::string& csvFile) {
-    std::ifstream file(csvFile);
-    if (!file.is_open()) {
-        return false;
-    }
-    
+bool CBSDriver::parseResultsCsv(std::istream& in, CBSResults& results) {
     std::string line;
-    std::getline(file, line); // Skip header
-    
+    std::getline(in, line); // Skip header
+
     std::string lastValidLine;
     // Read all lines and keep the last valid one
-    while (std::getline(file, line)) {
+    while (std::getline(in, line)) {
         if (!line.empty() && line.find(',') != std::string::npos) {
             lastValidLine = line;
         }
     }
-    
+
     if (!lastValidLine.empty()) {
         std::stringstream ss(lastValidLine);
         std::string token;
         std::vector<std::string> tokens;
-        
+
         while (std::getline(ss, token, ',')) {
             tokens.push_back(token);
         }
-        
+
         // CSV format: runtime,#high-level expanded,#high-level generated,#low-level expanded,#low-level generated,solution cost,...
         if (tokens.size() >= 6) {
             try {
-                m_results.runtime = std::stod(tokens[0]);           // runtime
-                m_results.highLevelNodes = std::stoi(tokens[1]);    // #high-level expanded
-                m_results.lowLevelNodes = std::stoi(tokens[3]);     // #low-level expanded  
-                m_results.solutionCost = std::stoi(tokens[5]);      // solution cost
-                
-                m_results.solutionFound = (m_results.solutionCost != -1);
-                
+                results.runtime = std::stod(tokens[0]);           // runtime
+                results.highLevelNodes = std::stoi(tokens[1]);    // #high-level expanded
+                results.lowLevelNodes = std::stoi(tokens[3]);     // #low-level expanded
+                results.solutionCost = std::stoi(tokens[5]);      // solution cost
+
+                results.solutionFound = (results.solutionCost != -1);
+
                 return true;
             } catch (const std::exception&) {
                 return false;
             }
         }
     }
-    
+
     return false;
+}
+
+bool CBSDriver::parseResults(const std::string& csvFile) {
+    std::ifstream file(csvFile);
+    if (!file.is_open()) {
+        return false;
+    }
+    return parseResultsCsv(file, m_results);
 }
 
 

@@ -1,0 +1,2 @@
+runtime,#high-level expanded,#high-level generated,#low-level expanded,#low-level generated,solution cost,min f value,root g value,root f value,#adopt bypasses,#standard conflicts,#rectangle conflicts,#corridor conflicts,#target conflicts,#mutex conflicts,#merged MDDs,#solved MDDs,preprocessing runtime,solver name,instance name
+0.051269,12,25,340,780,55,55,48,48,3,9,0,1,2,0,0,0,0.000412,CBSH2-RTC with AC,itest_1.scen

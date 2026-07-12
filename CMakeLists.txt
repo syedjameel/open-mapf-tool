@@ -175,6 +175,7 @@ if(OPENMAPF_BUILD_TESTS)
         tests/test_scen_writer.cpp
         tests/test_solver_driver.cpp
         tests/test_solver_integration.cpp
+        tests/test_solver_output_parsers.cpp
         tests/test_solver_manifest.cpp
     )
 

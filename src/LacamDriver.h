@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iosfwd>
 #include <string>
 #include <vector>
 #include <thread>
@@ -70,6 +71,16 @@ public:
 
     // Algorithm name
     const std::string& getAlgorithmName() const { return m_algorithmName; }
+
+    // Parse a LaCAM output log ('key=value' lines). Returns the solved
+    // flag; metric fields are filled in as encountered. Static and
+    // stream-based so it is unit-testable against fixtures.
+    static bool parseLacamOutput(std::istream& in, LacamResults& results);
+
+    // Convert the 'solution=' section of a LaCAM log (per-timestep agent
+    // positions) into the tool's per-agent arrow path format. Returns
+    // false when no positions could be extracted.
+    static bool convertLacamPaths(std::istream& in, std::ostream& out);
 
 protected:
     std::string m_executablePath;

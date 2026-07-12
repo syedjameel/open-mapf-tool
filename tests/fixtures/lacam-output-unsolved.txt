@@ -1,0 +1,8 @@
+agents=40
+map_file=itest_3.map
+solver=LaCAM
+solved=0
+soc=-1
+makespan=-1
+comp_time=10000
+seed=0

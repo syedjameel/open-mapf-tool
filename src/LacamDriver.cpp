@@ -272,49 +272,45 @@ void LacamDriverBase::executeLacam(const std::vector<Agent>& agents,
     }
 }
 
-bool LacamDriverBase::parseResults(const std::string& outputFile) {
-    std::ifstream file(outputFile);
-    if (!file.is_open()) {
-        return false;
-    }
-
+bool LacamDriverBase::parseLacamOutput(std::istream& in, LacamResults& results) {
     std::string line;
-    while (std::getline(file, line)) {
+    while (std::getline(in, line)) {
         try {
             if (line.find("solved=") == 0 && line.length() > 7) {
-                m_results.solutionFound = (line.substr(7) == "1");
+                results.solutionFound = (line.substr(7) == "1");
             } else if (line.find("soc=") == 0 && line.length() > 4) {
-                m_results.solutionCost = std::stoi(line.substr(4));
+                results.solutionCost = std::stoi(line.substr(4));
             } else if (line.find("soc_lb=") == 0 && line.length() > 7) {
-                m_results.socLowerBound = std::stoi(line.substr(7));
+                results.socLowerBound = std::stoi(line.substr(7));
             } else if (line.find("makespan=") == 0 && line.length() > 9) {
-                m_results.makespan = std::stoi(line.substr(9));
+                results.makespan = std::stoi(line.substr(9));
             } else if (line.find("makespan_lb=") == 0 && line.length() > 12) {
-                m_results.makespanLowerBound = std::stoi(line.substr(12));
+                results.makespanLowerBound = std::stoi(line.substr(12));
             } else if (line.find("sum_of_loss=") == 0 && line.length() > 12) {
-                m_results.sumOfLoss = std::stoi(line.substr(12));
+                results.sumOfLoss = std::stoi(line.substr(12));
             } else if (line.find("sum_of_loss_lb=") == 0 && line.length() > 15) {
-                m_results.sumOfLossLowerBound = std::stoi(line.substr(15));
+                results.sumOfLossLowerBound = std::stoi(line.substr(15));
             } else if (line.find("comp_time=") == 0 && line.length() > 10) {
                 // LaCAM reports time in milliseconds
-                m_results.runtime = std::stod(line.substr(10)) / 1000.0;
+                results.runtime = std::stod(line.substr(10)) / 1000.0;
             }
         } catch (const std::exception& e) {
             std::cerr << "[LaCAM] Error parsing line '" << line << "': " << e.what() << std::endl;
         }
     }
 
-    file.close();
-    return m_results.solutionFound;
+    return results.solutionFound;
 }
 
-bool LacamDriverBase::convertLacamPathsToStandard(const std::string& lacamOutputFile,
-                                                  const std::string& standardPathFile) {
-    std::ifstream inFile(lacamOutputFile);
-    if (!inFile.is_open()) {
+bool LacamDriverBase::parseResults(const std::string& outputFile) {
+    std::ifstream file(outputFile);
+    if (!file.is_open()) {
         return false;
     }
+    return parseLacamOutput(file, m_results);
+}
 
+bool LacamDriverBase::convertLacamPaths(std::istream& inFile, std::ostream& outFile) {
     std::vector<std::vector<std::pair<int, int>>> agentPaths;
     std::string line;
     bool inSolution = false;
@@ -372,15 +368,7 @@ bool LacamDriverBase::convertLacamPathsToStandard(const std::string& lacamOutput
         }
     }
 
-    inFile.close();
-
     if (agentPaths.empty()) {
-        return false;
-    }
-
-    // Write in standard format
-    std::ofstream outFile(standardPathFile);
-    if (!outFile.is_open()) {
         return false;
     }
 
@@ -411,6 +399,18 @@ bool LacamDriverBase::convertLacamPathsToStandard(const std::string& lacamOutput
     // Debug output
     std::cout << "[LaCAM] Converted " << agentPaths.size() << " agent paths, max timestep: " << maxTimeStep << std::endl;
 
-    outFile.close();
     return true;
+}
+
+bool LacamDriverBase::convertLacamPathsToStandard(const std::string& lacamOutputFile,
+                                                  const std::string& standardPathFile) {
+    std::ifstream inFile(lacamOutputFile);
+    if (!inFile.is_open()) {
+        return false;
+    }
+    std::ofstream outFile(standardPathFile);
+    if (!outFile.is_open()) {
+        return false;
+    }
+    return convertLacamPaths(inFile, outFile);
 }

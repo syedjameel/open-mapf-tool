@@ -1,0 +1,9 @@
+agents=3
+map_file=itest_4.map
+solved=1
+soc=12
+makespan=2
+comp_time=125
+solution=
+0:(0,0),(1,1),(2,2),
+1:(1,0),(2,

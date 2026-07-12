@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iosfwd>
 #include <string>
 #include <vector>
 #include <thread>
@@ -73,6 +74,11 @@ public:
 
     // Results access
     const CBSResults &getResults() const { return m_results; }
+
+    // Parse a CBSH2-RTC results CSV stream (header + one row per restart;
+    // the last valid row wins). Returns false if no usable row exists.
+    // Static and stream-based so it is unit-testable against fixtures.
+    static bool parseResultsCsv(std::istream &in, CBSResults &results);
 
 private:
     std::string m_executablePath; // empty = not configured
