@@ -1186,6 +1186,10 @@ void UIManager::startCBSSolver()
     m_cbsStartTime = std::chrono::steady_clock::now();
     m_cbsResults = CBSResults(); // Reset results
     
+    // Solver executable comes from the config (empty = not configured;
+    // the driver reports a clear error instead of running)
+    m_cbsDriver.setExecutablePath(m_env.m_solver_cbs);
+
     // Use temp directory and register temp files for cleanup
     std::string tempDir = getTempDirectory();
     m_cbsDriver.solveAsync(m_dynamicAgents, m_env, m_cbsParams, m_currentMapName,
@@ -1542,14 +1546,19 @@ void UIManager::startLacamSolver()
     m_showProgressDialog = true;
     m_lacamStartTime = std::chrono::steady_clock::now();
 
-    // Select the appropriate driver based on selected algorithm
+    // Select the appropriate driver based on selected algorithm and inject
+    // its executable path from the config (empty = not configured; the
+    // driver reports a clear error instead of running)
     LacamDriverBase* driver = nullptr;
     if (m_selectedAlgo == 1) {
         driver = &m_lacamDriver;
+        driver->setExecutablePath(m_env.m_solver_lacam);
     } else if (m_selectedAlgo == 2) {
         driver = &m_lacam2Driver;
+        driver->setExecutablePath(m_env.m_solver_lacam2);
     } else if (m_selectedAlgo == 3) {
         driver = &m_lacam3Driver;
+        driver->setExecutablePath(m_env.m_solver_lacam3);
     } else {
         m_lacamRunning = false;
         return;

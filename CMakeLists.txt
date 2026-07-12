@@ -84,8 +84,11 @@ if(OPENMAPF_BUILD_TESTS)
         tests/test_environment.cpp
         tests/test_map_format.cpp
         tests/test_scen_writer.cpp
+        tests/test_solver_driver.cpp
+        src/CBSDriver.cpp
         src/ConfigLocator.cpp
         src/Environment.cpp
+        src/LacamDriver.cpp
         src/MapFormat.cpp
     )
 

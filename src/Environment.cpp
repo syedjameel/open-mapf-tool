@@ -63,6 +63,16 @@ bool Environment::loadConfig(const std::string& config_path)
         m_frame_rate = p["frame_rate"].as<size_t>(m_frame_rate);
         m_time_step = p["time_step"].as<float>(m_time_step);
 
+        // Optional solver executable paths (absent => solver unavailable,
+        // reported clearly when the user tries to run it).
+        if (config["solvers"]) {
+            const YAML::Node& s = config["solvers"];
+            m_solver_cbs = s["cbs"].as<std::string>(m_solver_cbs);
+            m_solver_lacam = s["lacam"].as<std::string>(m_solver_lacam);
+            m_solver_lacam2 = s["lacam2"].as<std::string>(m_solver_lacam2);
+            m_solver_lacam3 = s["lacam3"].as<std::string>(m_solver_lacam3);
+        }
+
         m_grid = Grid<int>(m_cols, m_rows, 0); // reset the grid size whenever you read new row and col size
         calculateTileSizes();
         return true;

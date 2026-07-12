@@ -136,6 +136,23 @@ void LacamDriverBase::executeLacam(const std::vector<Agent>& agents,
         return;
     }
 
+    // Degrade gracefully when the solver binary is absent: report a clear,
+    // actionable error instead of shelling out to a nonexistent path.
+    std::string solverKey = m_algorithmName;
+    std::transform(solverKey.begin(), solverKey.end(), solverKey.begin(), ::tolower);
+    if (m_executablePath.empty()) {
+        m_results.errorMessage =
+            m_algorithmName + " solver is not configured. Set 'solvers: " + solverKey +
+            ": /path/to/main' in your env.yaml (run 'openmapf --help' for config locations).";
+        return;
+    }
+    if (!std::filesystem::exists(m_executablePath)) {
+        m_results.errorMessage =
+            m_algorithmName + " solver executable not found: " + m_executablePath +
+            " (check the 'solvers: " + solverKey + ":' entry in your env.yaml).";
+        return;
+    }
+
     try {
         // Generate unique filenames with timestamp
         auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -293,34 +310,6 @@ bool LacamDriverBase::convertLacamPathsToStandard(const std::string& lacamOutput
     std::string line;
     bool inSolution = false;
     int maxTimeStep = 0;
-    int mapHeight = -1;
-
-    // First pass: get map height for coordinate conversion
-    inFile.seekg(0);
-    while (std::getline(inFile, line)) {
-        if (line.find("map_file=") == 0) {
-            // Extract map filename and read its height
-            std::string mapFile = line.substr(9);
-            // Try to find the map file in temp directory
-            std::string mapPath = "temp/" + mapFile;
-            std::ifstream mapIn(mapPath);
-            if (mapIn.is_open()) {
-                std::string mapLine;
-                while (std::getline(mapIn, mapLine)) {
-                    if (mapLine.find("height ") == 0) {
-                        mapHeight = std::stoi(mapLine.substr(7));
-                        break;
-                    }
-                }
-                mapIn.close();
-            }
-            break;
-        }
-    }
-
-    // Reset to beginning for second pass
-    inFile.clear();
-    inFile.seekg(0);
 
     // Parse the LaCAM output format
     while (std::getline(inFile, line)) {

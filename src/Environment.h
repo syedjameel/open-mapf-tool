@@ -41,6 +41,14 @@ public:
     // Hex grid type (odd-r, even-r, odd-q, even-q)
     HexGridType m_hex_grid_type{HexGridType::ODD_R};
 
+    // Solver executables, configured via the optional 'solvers' section of
+    // env.yaml. Empty string = solver not configured; the UI reports this
+    // clearly instead of invoking a nonexistent binary.
+    std::string m_solver_cbs;
+    std::string m_solver_lacam;
+    std::string m_solver_lacam2;
+    std::string m_solver_lacam3;
+
     std::vector<std::string> grid_data;
     bool grid_loaded = false;
 

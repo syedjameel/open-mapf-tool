@@ -118,7 +118,22 @@ void CBSDriver::executeCBS(const std::vector<Agent>& agents,
         m_results.errorMessage = "No agents with goals found";
         return;
     }
-    
+
+    // Degrade gracefully when the solver binary is absent: report a clear,
+    // actionable error instead of shelling out to a nonexistent path.
+    if (m_executablePath.empty()) {
+        m_results.errorMessage =
+            "CBS solver is not configured. Set 'solvers: cbs: /path/to/cbs' "
+            "in your env.yaml (run 'openmapf --help' for config locations).";
+        return;
+    }
+    if (!std::filesystem::exists(m_executablePath)) {
+        m_results.errorMessage =
+            "CBS solver executable not found: " + m_executablePath +
+            " (check the 'solvers: cbs:' entry in your env.yaml).";
+        return;
+    }
+
     try {
         // Generate unique file names to avoid conflicts
         auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -156,7 +171,7 @@ void CBSDriver::executeCBS(const std::vector<Agent>& agents,
         
         // Build CBS command
         std::stringstream cmd;
-        cmd << "../algorithms/CBSH2-RTC-CHBP-HEX/cbs";
+        cmd << m_executablePath;
         cmd << " -m " << mapFile;
         cmd << " -a " << scenFile;  
         cmd << " -o " << outputFile;

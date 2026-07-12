@@ -62,6 +62,10 @@ public:
                     const std::string &tempDir = "",
                     std::function<void(const std::string &)> tempFileCallback = nullptr);
 
+    // Solver executable path ("" = not configured)
+    void setExecutablePath(const std::string &path) { m_executablePath = path; }
+    const std::string &getExecutablePath() const { return m_executablePath; }
+
     // Status checking
     bool isRunning() const { return m_isRunning.load(); }
     void cancel();
@@ -70,6 +74,7 @@ public:
     const CBSResults &getResults() const { return m_results; }
 
 private:
+    std::string m_executablePath; // empty = not configured
     std::atomic<bool> m_isRunning{false};
     std::atomic<bool> m_shouldCancel{false};
     std::thread m_solverThread;

@@ -56,6 +56,10 @@ public:
                     const std::string& tempDir = "",
                     std::function<void(const std::string&)> tempFileCallback = nullptr);
 
+    // Solver executable path ("" = not configured)
+    void setExecutablePath(const std::string& path) { m_executablePath = path; }
+    const std::string& getExecutablePath() const { return m_executablePath; }
+
     // Status checking
     bool isRunning() const { return m_isRunning.load(); }
     void cancel();
@@ -101,30 +105,23 @@ private:
     std::string getHexConfigString(const Environment& env) const;
 };
 
-// Specific driver classes for each LaCAM variant
+// Specific driver classes for each LaCAM variant. Executable paths are not
+// hardcoded: they come from the 'solvers' section of env.yaml via
+// setExecutablePath(); an empty path means "not configured".
 class LacamDriver : public LacamDriverBase
 {
 public:
-    LacamDriver() : LacamDriverBase(
-        "../algorithms/hexagonal_lacam/lacam/build/main",
-        "LaCAM"
-    ) {}
+    LacamDriver() : LacamDriverBase("", "LaCAM") {}
 };
 
 class Lacam2Driver : public LacamDriverBase
 {
 public:
-    Lacam2Driver() : LacamDriverBase(
-        "../algorithms/hexagonal_lacam/lacam2/build/main",
-        "LaCAM2"
-    ) {}
+    Lacam2Driver() : LacamDriverBase("", "LaCAM2") {}
 };
 
 class Lacam3Driver : public LacamDriverBase
 {
 public:
-    Lacam3Driver() : LacamDriverBase(
-        "../algorithms/hexagonal_lacam/lacam3/build/main",
-        "LaCAM3"
-    ) {}
+    Lacam3Driver() : LacamDriverBase("", "LaCAM3") {}
 };
