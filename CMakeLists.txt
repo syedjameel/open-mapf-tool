@@ -54,6 +54,7 @@ add_library(openmapf_core STATIC
     src/LacamDriver.cpp
     src/MapFormat.cpp
     src/PathManager.cpp
+    src/ProcessRunner.cpp
 )
 
 # Generated version header (OPENMAPF_VERSION), available to all targets
@@ -63,6 +64,9 @@ target_include_directories(openmapf_core PUBLIC
     src
     ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
+# vendored single-header subprocess library (implementation detail of
+# ProcessRunner.cpp only; not exposed in public headers)
+target_include_directories(openmapf_core PRIVATE vendor/subprocess)
 target_compile_features(openmapf_core PUBLIC cxx_std_17)
 target_compile_options(openmapf_core PRIVATE ${OPENMAPF_WARNING_FLAGS})
 target_link_libraries(openmapf_core PUBLIC
@@ -165,6 +169,7 @@ if(OPENMAPF_BUILD_TESTS)
         tests/test_config_locator.cpp
         tests/test_environment.cpp
         tests/test_map_format.cpp
+        tests/test_process_runner.cpp
         tests/test_scen_writer.cpp
         tests/test_solver_driver.cpp
     )
