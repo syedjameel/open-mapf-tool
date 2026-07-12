@@ -1525,8 +1525,10 @@ void UIManager::onCBSComplete(const CBSResults& results)
     // Auto-load paths immediately if solution found
     if (m_cbsResults.solutionFound && !m_cbsResults.pathsFile.empty()) {
         try {
-            // Use existing path loader (same as Load Paths button)
-            m_pathManager.loadPaths(m_cbsResults.pathsFile, m_lacamFormat);
+            // CBS arrow files always store (row,col) pairs, so the swap in
+            // loadPaths must always be applied -- never depend on the user's
+            // "LaCAM format" checkbox here (docs/file-formats.md).
+            m_pathManager.loadPaths(m_cbsResults.pathsFile, false);
             
             // Initialize animation controller (same as existing mechanism)
             m_animController.start(m_pathManager.getPaths());

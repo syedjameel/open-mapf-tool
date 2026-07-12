@@ -171,6 +171,7 @@ if(OPENMAPF_BUILD_TESTS)
         tests/test_config_locator.cpp
         tests/test_environment.cpp
         tests/test_map_format.cpp
+        tests/test_path_manager.cpp
         tests/test_process_runner.cpp
         tests/test_results_csv.cpp
         tests/test_scen_reader.cpp
