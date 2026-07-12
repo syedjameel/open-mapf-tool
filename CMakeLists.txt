@@ -3,6 +3,12 @@ project(openmapf VERSION 0.1.0 LANGUAGES CXX)
 
 option(OPENMAPF_BUILD_TESTS "Build unit tests (fetches Catch2 via FetchContent)" ON)
 option(OPENMAPF_WERROR "Treat first-party compiler warnings as errors (CI)" OFF)
+option(OPENMAPF_SANITIZE "Build with AddressSanitizer + UndefinedBehaviorSanitizer" OFF)
+
+if(OPENMAPF_SANITIZE)
+    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address,undefined)
+endif()
 
 # Warning flags for first-party targets only (never for vendored code)
 if(MSVC)
