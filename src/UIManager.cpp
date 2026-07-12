@@ -1,6 +1,7 @@
 #include "UIManager.h"
 #include "GridRenderer.h"
 #include "MapFormat.h"
+#include <unistd.h> // ::getpid
 #include <iostream>
 #include <fstream>
 #include <cstring>
@@ -1409,7 +1410,11 @@ std::string UIManager::getTempDirectory()
 {
     if (m_tempDirPath.empty())
     {
-        m_tempDirPath = "temp";
+        // Per-process directory under the system temp dir: independent of
+        // the current working directory and safe from clashing with (or
+        // deleting) user files.
+        m_tempDirPath = (std::filesystem::temp_directory_path() /
+                         ("openmapf-" + std::to_string(::getpid()))).string();
     }
     
     // Always ensure temp directory exists when requested
@@ -1459,46 +1464,13 @@ void UIManager::cleanupTempFiles()
         }
     }
     m_tempFiles.clear();
-    
-    // Also clean up any orphaned temp files from previous runs
-    // Look for pattern: *_[timestamp].{map,scen,csv,txt} in current directory
-    try
-    {
-        for (const auto& entry : std::filesystem::directory_iterator("."))
-        {
-            if (entry.is_regular_file())
-            {
-                std::string filename = entry.path().filename().string();
-                
-                // Check if it matches the pattern: name_timestamp.extension
-                if (filename.find("_") != std::string::npos)
-                {
-                    std::string ext = entry.path().extension().string();
-                    if (ext == ".map" || ext == ".scen" || ext == ".csv" || ext == ".txt")
-                    {
-                        // Check if the part after _ is all digits (timestamp)
-                        size_t underscorePos = filename.find_last_of("_");
-                        size_t dotPos = filename.find_last_of(".");
-                        if (underscorePos != std::string::npos && dotPos != std::string::npos && 
-                            underscorePos < dotPos)
-                        {
-                            std::string timestampPart = filename.substr(underscorePos + 1, dotPos - underscorePos - 1);
-                            if (std::all_of(timestampPart.begin(), timestampPart.end(), ::isdigit))
-                            {
-                                std::filesystem::remove(entry.path());
-                                std::cout << "Cleaned up orphaned temp file: " << filename << std::endl;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr << "Failed to clean orphaned temp files: " << e.what() << std::endl;
-    }
-    
+
+    // NOTE: this used to also scan the *current working directory* and
+    // delete any file matching *_<digits>.{map,scen,csv,txt}, which could
+    // silently destroy a user's own files (e.g. experiment_1.map). Cleanup
+    // is now strictly limited to the tracked temp files above.
+    // (Plan defect A3)
+
     // Keep temp directory available (don't remove it)
     // This ensures CBS can always create files when needed
     try
