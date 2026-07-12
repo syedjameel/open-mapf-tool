@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""openmapf-plot — standard MAPF figures from an OpenMAPF results CSV.
+
+Reads the stable results schema (docs/file-formats.md) produced by
+`openmapf run` or the GUI's "Export last run" and writes:
+
+  success_rate_vs_agents.png   success rate vs. agent count, one line per
+                               solver x grid (the standard MAPF benchmark
+                               figure)
+  runtime_cactus.png           runtime cactus plot: solved instances sorted
+                               by runtime, one line per solver x grid
+
+Usage: openmapf-plot RESULTS_CSV [-o OUTPUT_DIR]
+
+Dependencies: Python 3, pandas, matplotlib (no seaborn or other extras).
+"""
+import argparse
+import os
+import sys
+
+import matplotlib
+matplotlib.use("Agg")  # never needs a display
+import matplotlib.pyplot as plt
+import pandas as pd
+
+REQUIRED = {"solver", "map", "agents", "grid_type", "hex_layout",
+            "solved", "runtime_s"}
+
+
+def series_label(solver: str, grid_type: str, hex_layout: str) -> str:
+    grid = grid_type if grid_type != "hex" else f"hex-{hex_layout}"
+    return f"{solver} ({grid})"
+
+
+def load(path: str) -> pd.DataFrame:
+    try:
+        df = pd.read_csv(path)
+    except FileNotFoundError:
+        sys.exit(f"error: no such file: {path}")
+    except Exception as e:  # malformed CSV etc.
+        sys.exit(f"error: cannot read {path}: {e}")
+    missing = REQUIRED - set(df.columns)
+    if missing:
+        sys.exit(f"error: {path} is missing columns: {', '.join(sorted(missing))} "
+                 "(expected the OpenMAPF results schema, see docs/file-formats.md)")
+    if df.empty:
+        sys.exit(f"error: {path} contains no data rows")
+    df["hex_layout"] = df["hex_layout"].fillna("")
+    df["series"] = [series_label(s, g, h) for s, g, h in
+                    zip(df["solver"], df["grid_type"], df["hex_layout"])]
+    return df
+
+
+def plot_success_rate(df: pd.DataFrame, out_path: str) -> None:
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    for series, group in sorted(df.groupby("series")):
+        rate = group.groupby("agents")["solved"].mean().sort_index()
+        # .to_numpy(): old matplotlib versions cannot index pandas objects
+        ax.plot(rate.index.to_numpy(), rate.to_numpy(), marker="o", label=series)
+    ax.set_xlabel("agents")
+    ax.set_ylabel("success rate")
+    ax.set_ylim(-0.02, 1.02)
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=8)
+    ax.set_title("Success rate vs. number of agents")
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+
+
+def plot_runtime_cactus(df: pd.DataFrame, out_path: str) -> None:
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    solved = df[df["solved"] == 1]
+    for series, group in sorted(solved.groupby("series")):
+        runtimes = group["runtime_s"].sort_values().reset_index(drop=True)
+        if runtimes.empty:
+            continue
+        ax.plot(list(range(1, len(runtimes) + 1)), runtimes.to_numpy(), label=series)
+    ax.set_xlabel("solved instances (sorted by runtime)")
+    ax.set_ylabel("runtime [s]")
+    ax.set_yscale("log")
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=8)
+    ax.set_title("Runtime cactus plot")
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Standard MAPF figures from an OpenMAPF results CSV.")
+    parser.add_argument("results_csv", help="results.csv written by 'openmapf run'")
+    parser.add_argument("-o", "--output-dir", default=None,
+                        help="directory for the PNGs (default: next to the CSV)")
+    args = parser.parse_args()
+
+    df = load(args.results_csv)
+    out_dir = args.output_dir or os.path.dirname(os.path.abspath(args.results_csv))
+    os.makedirs(out_dir, exist_ok=True)
+
+    success_png = os.path.join(out_dir, "success_rate_vs_agents.png")
+    cactus_png = os.path.join(out_dir, "runtime_cactus.png")
+    plot_success_rate(df, success_png)
+    plot_runtime_cactus(df, cactus_png)
+
+    n_solved = int((df["solved"] == 1).sum())
+    print(f"{len(df)} runs ({n_solved} solved) across "
+          f"{df['series'].nunique()} solver/grid series")
+    print(f"wrote {success_png}")
+    print(f"wrote {cactus_png}")
+
+
+if __name__ == "__main__":
+    main()
