@@ -17,14 +17,30 @@ else()
     endif()
 endif()
 
-find_package(Threads REQUIRED)
-find_package(yaml-cpp REQUIRED)
+option(OPENMAPF_FETCH_DEPS "Build yaml-cpp from source via FetchContent instead of requiring a system package" OFF)
 
-# yaml-cpp exports 'yaml-cpp::yaml-cpp' from 0.8, plain 'yaml-cpp' before that
-if(TARGET yaml-cpp::yaml-cpp)
+find_package(Threads REQUIRED)
+
+if(OPENMAPF_FETCH_DEPS)
+    include(FetchContent)
+    set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+    set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(
+        yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG        0.8.0
+    )
+    FetchContent_MakeAvailable(yaml-cpp)
     set(OPENMAPF_YAMLCPP_TARGET yaml-cpp::yaml-cpp)
 else()
-    set(OPENMAPF_YAMLCPP_TARGET yaml-cpp)
+    find_package(yaml-cpp REQUIRED)
+    # yaml-cpp exports 'yaml-cpp::yaml-cpp' from 0.8, plain 'yaml-cpp' before that
+    if(TARGET yaml-cpp::yaml-cpp)
+        set(OPENMAPF_YAMLCPP_TARGET yaml-cpp::yaml-cpp)
+    else()
+        set(OPENMAPF_YAMLCPP_TARGET yaml-cpp)
+    endif()
 endif()
 
 # ---------------------------------------------------------------------------
