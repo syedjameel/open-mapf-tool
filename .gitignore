@@ -4,3 +4,8 @@
 *.log
 *.DS_Store
 *.swp
+# solver checkouts created by scripts/get-solvers.sh
+/algorithms
+
+# extra local build trees (build-*, e.g. FetchContent verification builds)
+/build-*
