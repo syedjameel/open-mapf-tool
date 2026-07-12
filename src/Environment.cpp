@@ -7,10 +7,22 @@
 
 Environment::Environment(const std::string& path)
 {
-    loadConfig(path);
+    setDefaults();
+    if (!path.empty()) {
+        loadConfig(path);
+    }
 }
 
 Environment::Environment()
+{
+    setDefaults();
+}
+
+Environment::~Environment()
+{
+}
+
+void Environment::setDefaults()
 {
     m_width = 1280;
     m_height = 720;
@@ -27,32 +39,39 @@ Environment::Environment()
     m_grid = Grid<int>(m_cols, m_rows, 0);
 }
 
-Environment::~Environment()
+bool Environment::loadConfig(const std::string& config_path)
 {
-}
+    // Never abort the application over a bad/missing config: keep the
+    // compiled-in defaults, warn, and continue.
+    try {
+        YAML::Node config = YAML::LoadFile(config_path);
 
-void Environment::loadConfig(const std::string& config_path)
-{
-    YAML::Node config = YAML::LoadFile(config_path);
+        if (!config["params"]) {
+            std::cerr << "Warning: config file '" << config_path
+                      << "' has no 'params' section; using built-in defaults." << std::endl;
+            return false;
+        }
 
-    if (config["params"]) {
-        m_width = config["params"]["width"].as<size_t>();
-        m_height = config["params"]["height"].as<size_t>();
-        m_name = config["params"]["name"].as<std::string>();
-        m_square = config["params"]["square"].as<bool>();
-        m_hexagon = config["params"]["hexagon"].as<bool>();
-        m_rows = config["params"]["rows"].as<size_t>();
-        m_cols = config["params"]["cols"].as<size_t>();
-        m_frame_rate = config["params"]["frame_rate"].as<size_t>();
-        m_time_step = config["params"]["time_step"].as<float>();
+        const YAML::Node& p = config["params"];
+        m_width = p["width"].as<size_t>(m_width);
+        m_height = p["height"].as<size_t>(m_height);
+        m_name = p["name"].as<std::string>(m_name);
+        m_square = p["square"].as<bool>(m_square);
+        m_hexagon = p["hexagon"].as<bool>(m_hexagon);
+        m_rows = p["rows"].as<size_t>(m_rows);
+        m_cols = p["cols"].as<size_t>(m_cols);
+        m_frame_rate = p["frame_rate"].as<size_t>(m_frame_rate);
+        m_time_step = p["time_step"].as<float>(m_time_step);
+
         m_grid = Grid<int>(m_cols, m_rows, 0); // reset the grid size whenever you read new row and col size
         calculateTileSizes();
-        }
-    // } else {
-    //     std::cerr << "Invalid configuration format." << std::endl;
-    // }
-
-    // loadMap();
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Warning: failed to load config '" << config_path << "': " << e.what()
+                  << "; using built-in defaults." << std::endl;
+        setDefaults();
+        return false;
+    }
 }
 
 void Environment::loadMap(const std::string& map_path)

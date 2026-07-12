@@ -13,11 +13,15 @@
 class ImGuiMapfApp
 {
 public:
-    void run();
+    // configPath: resolved config file path, or "" for built-in defaults.
+    explicit ImGuiMapfApp(const std::string& configPath = "") : m_env(configPath) {}
+
+    // Returns a process exit code (0 on success).
+    int run();
 
 private:
     // Core components
-    Environment m_env{"../config/env.yaml"};
+    Environment m_env;
     PathManager m_pathManager;
     AnimationController m_animController;
     UIManager m_uiManager{m_env, m_pathManager, m_animController};

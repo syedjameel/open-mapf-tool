@@ -106,16 +106,33 @@ void ImGuiMapfApp::renderScene()
     ImGui::End();
 }
 
-void ImGuiMapfApp::run()
+int ImGuiMapfApp::run()
 {
+    glfwSetErrorCallback([](int error, const char* description) {
+        std::cerr << "GLFW error " << error << ": " << (description ? description : "?") << std::endl;
+    });
+
     if (!glfwInit())
-        return;
+    {
+        std::cerr << "Error: failed to initialize GLFW (is a display available?)" << std::endl;
+        return 1;
+    }
 
     const char* glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "MAPF Viewer", nullptr, nullptr);
+    // Honor configured window size, guarding against degenerate values
+    int width = m_env.m_width >= 320 ? static_cast<int>(m_env.m_width) : 1280;
+    int height = m_env.m_height >= 240 ? static_cast<int>(m_env.m_height) : 720;
+
+    GLFWwindow* window = glfwCreateWindow(width, height, "OpenMAPF", nullptr, nullptr);
+    if (window == nullptr)
+    {
+        std::cerr << "Error: failed to create a window/OpenGL context" << std::endl;
+        glfwTerminate();
+        return 1;
+    }
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
@@ -128,4 +145,5 @@ void ImGuiMapfApp::run()
     }
 
     cleanupImGui(window);
+    return 0;
 }

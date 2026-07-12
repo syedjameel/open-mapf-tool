@@ -37,6 +37,7 @@ target_link_libraries(imgui PUBLIC
 add_executable(openmapf
     src/Main.cpp
     src/App.cpp
+    src/ConfigLocator.cpp
     src/Environment.cpp
     src/MapFormat.cpp
     src/GridRenderer.cpp
@@ -79,9 +80,11 @@ if(OPENMAPF_BUILD_TESTS)
     FetchContent_MakeAvailable(Catch2)
 
     add_executable(openmapf_tests
+        tests/test_config_locator.cpp
         tests/test_environment.cpp
         tests/test_map_format.cpp
         tests/test_scen_writer.cpp
+        src/ConfigLocator.cpp
         src/Environment.cpp
         src/MapFormat.cpp
     )

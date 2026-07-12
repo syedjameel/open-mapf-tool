@@ -47,12 +47,15 @@ public:
     Grid<int> m_grid;
 
     Environment();
-    Environment(const std::string &config_path);
+    explicit Environment(const std::string &config_path);
     ~Environment();
 
-    void loadConfig(const std::string &config_path);
+    // Loads config from a YAML file. Returns false (keeping built-in
+    // defaults) instead of throwing when the file is missing or invalid.
+    bool loadConfig(const std::string &config_path);
     void loadMap(const std::string &map_path);
 
 private:
+    void setDefaults();
     void calculateTileSizes();
 };
