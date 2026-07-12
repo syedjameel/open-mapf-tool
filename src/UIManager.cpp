@@ -224,14 +224,14 @@ void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_po
     if ((m_animController.isAnimating() || !m_pathManager.getPaths().empty()) && !m_addRemoveAgents)
     {
         const auto& paths = m_pathManager.getPaths();
+
+        // Ensure we have valid path indices (bind the reference only after
+        // any resize, which can reallocate)
+        if (m_animController.getPathIndices().size() != paths.size()) {
+            m_animController.syncWithPaths(paths.size());
+        }
         const auto& pathIndices = m_animController.getPathIndices();
         float alpha = m_animController.getFrameTimer() / AnimationController::STEP_INTERVAL;
-        
-        // Ensure we have valid path indices
-        if (pathIndices.size() != paths.size()) {
-            auto& mutableIndices = const_cast<std::vector<size_t>&>(pathIndices);
-            mutableIndices.resize(paths.size(), 0);
-        }
         
         for (size_t i = 0; i < paths.size(); ++i)
         {
@@ -690,26 +690,25 @@ void UIManager::renderAnimationControls()
         
         // Update path indices based on time step
         const auto& paths = m_pathManager.getPaths();
-        auto& pathIndices = const_cast<std::vector<size_t>&>(m_animController.getPathIndices());
-        
+
         // Ensure pathIndices is properly sized
-        if (pathIndices.size() != paths.size()) {
-            pathIndices.resize(paths.size(), 0);
+        if (m_animController.getPathIndices().size() != paths.size()) {
+            m_animController.syncWithPaths(paths.size());
         }
-        
+
         // Update each agent's position based on the current time step
         for (size_t i = 0; i < paths.size(); ++i)
         {
             if (paths[i].empty()) continue;
-            
+
             // If current time step is beyond this agent's path length,
             // keep the agent at its final position
             size_t pathLength = paths[i].size();
-            if (currentStep >= pathLength - 1) {
-                pathIndices[i] = pathLength - 1;
+            if (static_cast<size_t>(currentStep) >= pathLength - 1) {
+                m_animController.setPathIndex(i, pathLength - 1);
             } else {
                 // Otherwise, set the agent's position to the current time step
-                pathIndices[i] = currentStep;
+                m_animController.setPathIndex(i, static_cast<size_t>(currentStep));
             }
         }
         
@@ -1193,9 +1192,12 @@ void UIManager::startCBSSolver()
 
     // Use temp directory and register temp files for cleanup
     std::string tempDir = getTempDirectory();
+    // The callback runs on the solver thread: only queue the results here.
+    // They are applied on the GUI thread by processPendingResults().
     m_cbsDriver.solveAsync(m_dynamicAgents, m_env, m_cbsParams, m_currentMapName,
                           [this](const CBSResults& results) {
-                              this->onCBSComplete(results);
+                              std::lock_guard<std::mutex> lock(m_pendingResultsMutex);
+                              m_pendingCbsResults = results;
                           },
                           tempDir,
                           [this](const std::string& filename) {
@@ -1203,6 +1205,25 @@ void UIManager::startCBSSolver()
                           });
 }
 
+void UIManager::processPendingResults()
+{
+    std::optional<CBSResults> cbsResults;
+    std::optional<LacamResults> lacamResults;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingResultsMutex);
+        cbsResults.swap(m_pendingCbsResults);
+        lacamResults.swap(m_pendingLacamResults);
+    }
+
+    if (cbsResults) {
+        onCBSComplete(*cbsResults);
+    }
+    if (lacamResults) {
+        onLacamComplete(*lacamResults);
+    }
+}
+
+// Runs on the GUI thread (via processPendingResults)
 void UIManager::onCBSComplete(const CBSResults& results)
 {
     // Make sure we're still expecting results (avoid race conditions)
@@ -1538,9 +1559,12 @@ void UIManager::startLacamSolver()
 
     // Use temp directory and register temp files for cleanup
     std::string tempDir = getTempDirectory();
+    // The callback runs on the solver thread: only queue the results here.
+    // They are applied on the GUI thread by processPendingResults().
     driver->solveAsync(m_dynamicAgents, m_env, m_lacamParams, m_currentMapName,
                        [this](const LacamResults& results) {
-                           this->onLacamComplete(results);
+                           std::lock_guard<std::mutex> lock(m_pendingResultsMutex);
+                           m_pendingLacamResults = results;
                        },
                        tempDir,
                        [this](const std::string& filename) {
@@ -1548,6 +1572,7 @@ void UIManager::startLacamSolver()
                        });
 }
 
+// Runs on the GUI thread (via processPendingResults)
 void UIManager::onLacamComplete(const LacamResults& results)
 {
     // Make sure we're still expecting results (avoid race conditions)

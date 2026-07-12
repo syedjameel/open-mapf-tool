@@ -25,6 +25,19 @@ public:
     void setScrubPercent(float percent);
     
     const std::vector<size_t>& getPathIndices() const { return m_pathIndices; }
+
+    // Resize the per-agent path indices to match the number of loaded paths
+    // (new entries start at 0). Replaces external const_cast mutation.
+    void syncWithPaths(size_t pathCount) { m_pathIndices.resize(pathCount, 0); }
+
+    // Set a single agent's current path index (bounds-checked).
+    void setPathIndex(size_t agent, size_t index)
+    {
+        if (agent < m_pathIndices.size()) {
+            m_pathIndices[agent] = index;
+        }
+    }
+
     float getFrameTimer() const { return m_frameTimer; }
     
     bool showPaths() const { return m_showPaths; }

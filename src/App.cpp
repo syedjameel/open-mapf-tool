@@ -36,7 +36,10 @@ void ImGuiMapfApp::processFrame(GLFWwindow* window)
     ImGui::NewFrame();
 
     ImGui::DockSpaceOverViewport();
-    
+
+    // Apply solver results queued by solver threads (GUI thread only)
+    m_uiManager.processPendingResults();
+
     // Render scene window, control panel, file dialogs and animation
     renderScene();
     m_uiManager.renderControlPanel();

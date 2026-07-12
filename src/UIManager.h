@@ -11,6 +11,8 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <chrono>
 #include <filesystem>
 #include <algorithm>
@@ -27,7 +29,12 @@ public:
     void renderControlPanel();
     
     void handleFileDialogs();
-    
+
+    // Must be called once per frame on the GUI thread: consumes solver
+    // results queued by the solver threads and applies them to GUI-owned
+    // state (path manager, animation controller, dialogs).
+    void processPendingResults();
+
     bool isAddRemoveObstacles() const { return m_addRemoveObstacles; }
     void setAddRemoveObstacles(bool value) { m_addRemoveObstacles = value; }
     
@@ -83,6 +90,14 @@ private:
     bool m_cbsRunning = false;
     bool m_startCBSAfterSave = false;
     std::chrono::steady_clock::time_point m_cbsStartTime;
+
+    // Solver results are produced on solver threads. They are only queued
+    // here (under the mutex) and consumed on the GUI thread by
+    // processPendingResults(), so GUI-owned state is never mutated
+    // concurrently with rendering.
+    std::mutex m_pendingResultsMutex;
+    std::optional<CBSResults> m_pendingCbsResults;
+    std::optional<LacamResults> m_pendingLacamResults;
 
     // LaCAM integration
     LacamDriver m_lacamDriver;
