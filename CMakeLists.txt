@@ -117,6 +117,37 @@ target_link_libraries(openmapf PRIVATE
 target_compile_options(openmapf PRIVATE ${OPENMAPF_WARNING_FLAGS})
 
 # ---------------------------------------------------------------------------
+# Installation & packaging
+# ---------------------------------------------------------------------------
+include(GNUInstallDirs)
+
+install(TARGETS openmapf
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+# Installed next to bin/ so the exe-relative config discovery
+# (<exe dir>/../share/openmapf/env.yaml) finds it out of the box.
+install(FILES config/env.yaml
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/openmapf
+)
+
+install(FILES LICENSE README.md
+    DESTINATION ${CMAKE_INSTALL_DOCDIR}
+)
+
+set(CPACK_PACKAGE_NAME "openmapf")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "Interactive Multi-Agent Path Finding visualizer for square and hexagonal grids")
+set(CPACK_PACKAGE_CONTACT "Jameel Ahmed Syed <syedjameel9290@gmail.com>")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_GENERATOR "TGZ;DEB")
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_PACKAGE_SECTION "science")
+include(CPack)
+
+# ---------------------------------------------------------------------------
 # Unit tests (headless: link openmapf_core only — no ImGui/OpenGL/GLFW)
 # ---------------------------------------------------------------------------
 if(OPENMAPF_BUILD_TESTS)
