@@ -10,7 +10,7 @@ namespace ResultsCsv {
 
 const char* const kHeader =
     "solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s,"
-    "solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version";
+    "solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version,status";
 
 std::string escapeField(const std::string& field)
 {
@@ -39,8 +39,83 @@ std::string formatRow(const RunRecord& r)
         << escapeField(r.scenario) << ',' << r.agents << ',' << escapeField(r.gridType) << ','
         << escapeField(r.hexLayout) << ',' << r.seed << ',' << r.timeLimitS << ','
         << (r.solved ? 1 : 0) << ',' << runtime << ',' << r.solutionCost << ',' << r.makespan
-        << ',' << r.hlExpanded << ',' << r.llExpanded << ',' << escapeField(r.toolVersion);
+        << ',' << r.hlExpanded << ',' << r.llExpanded << ',' << escapeField(r.toolVersion)
+        << ',' << escapeField(r.status);
     return row.str();
+}
+
+std::vector<std::string> splitRow(const std::string& line)
+{
+    std::vector<std::string> fields;
+    std::string field;
+    bool inQuotes = false;
+
+    for (std::size_t i = 0; i < line.size(); ++i) {
+        char c = line[i];
+        if (inQuotes) {
+            if (c == '"') {
+                if (i + 1 < line.size() && line[i + 1] == '"') {
+                    field += '"';
+                    ++i;
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                field += c;
+            }
+        } else if (c == '"') {
+            inQuotes = true;
+        } else if (c == ',') {
+            fields.push_back(field);
+            field.clear();
+        } else {
+            field += c;
+        }
+    }
+    fields.push_back(field);
+    return fields;
+}
+
+std::vector<std::vector<std::string>> readCompletedRows(const std::string& path)
+{
+    std::vector<std::vector<std::string>> rows;
+
+    std::ifstream in(path, std::ios::binary);
+    if (!in.is_open()) {
+        return rows;
+    }
+    std::ostringstream ss;
+    ss << in.rdbuf();
+    std::string content = ss.str();
+
+    // A row is only complete once its newline hit the disk; drop anything
+    // after the final newline (a row truncated by a crash).
+    std::size_t lastNewline = content.rfind('\n');
+    if (lastNewline == std::string::npos) {
+        return rows;
+    }
+    content.resize(lastNewline);
+
+    std::istringstream lines(content);
+    std::string line;
+    bool first = true;
+    while (std::getline(lines, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        if (first) {
+            first = false; // header
+            continue;
+        }
+        if (line.empty()) {
+            continue;
+        }
+        auto fields = splitRow(line);
+        if (fields.size() >= kKeyColumnCount) {
+            rows.push_back(std::move(fields));
+        }
+    }
+    return rows;
 }
 
 bool appendRow(const std::string& path, const RunRecord& r)

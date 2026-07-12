@@ -1425,6 +1425,18 @@ void UIManager::renderResultsTab()
                 rec.solutionCost = m_lacamResults.solutionCost;
                 rec.makespan = m_lacamResults.makespan;
             }
+            if (m_selectedAlgo == 0)
+            {
+                rec.status = m_cbsResults.solutionFound
+                                 ? "solved"
+                                 : (m_cbsResults.errorMessage.empty() ? "unsolved" : "error");
+            }
+            else
+            {
+                rec.status = m_lacamResults.solutionFound
+                                 ? "solved"
+                                 : (m_lacamResults.errorMessage.empty() ? "unsolved" : "error");
+            }
             m_resultsExportStatus = ResultsCsv::appendRow(m_resultsCsvPathBuffer, rec)
                                         ? "Appended to " + std::string(m_resultsCsvPathBuffer)
                                         : "Failed to write " + std::string(m_resultsCsvPathBuffer);

@@ -151,7 +151,7 @@ experiment runner. **This schema is a stable interface**: new columns are
 only ever appended.
 
 ```
-solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s,solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version
+solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s,solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version,status
 ```
 
 | Column | Type | Meaning |
@@ -171,6 +171,7 @@ solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s,solved,runtime
 | hl_expanded | int | high-level nodes expanded; `-1` = unknown |
 | ll_expanded | int | low-level nodes expanded; `-1` = unknown |
 | tool_version | string | OpenMAPF version that produced the row |
+| status | string | `solved`, `unsolved`, `error`, `hard_timeout` (killed at the hard deadline), or `skipped` (instance unusable, e.g. too few scen entries) |
 
 Writer semantics: the header is written only when the file is new or empty;
 rows are appended and flushed immediately (a crashed batch run can be
