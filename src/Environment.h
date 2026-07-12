@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 #include <yaml-cpp/yaml.h>
-#include "GridRenderer.h" // For HexGridType enum
+#include "HexGridType.h"
 
 // Constants for tile size calculations
 static constexpr float UI_MARGIN = 100.0f;

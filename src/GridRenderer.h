@@ -2,16 +2,9 @@
 
 #include "imgui.h"
 #include "Grid.hpp"
+#include "HexGridType.h"
 #include "SpatialGrid.h"
 #include "Types.h"
-
-// Enum for hexagonal grid types
-enum class HexGridType {
-    ODD_R,  // Pointy top, odd rows shifted
-    EVEN_R, // Pointy top, even rows shifted
-    ODD_Q,  // Flat top, odd columns shifted
-    EVEN_Q  // Flat top, even columns shifted
-};
 
 class GridRenderer {
 public:
