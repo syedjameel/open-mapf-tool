@@ -1,0 +1,49 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: OpenMAPF version
+      description: Output of `openmapf --version` (or the commit hash).
+      placeholder: openmapf 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Ubuntu 24.04
+    validations:
+      required: true
+  - type: input
+    id: compiler
+    attributes:
+      label: Compiler (for build problems)
+      placeholder: gcc 13.2
+  - type: textarea
+    id: solvers
+    attributes:
+      label: Solver manifest (for solver problems)
+      description: Contents of your solvers.yaml, and which solver versions you built.
+      render: yaml
+  - type: textarea
+    id: files
+    attributes:
+      label: Map / scenario / spec files
+      description: >
+        Attach (drag & drop) the .map/.scen/experiment.yaml that reproduces
+        the problem, or paste minimal versions.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Terminal output
+      render: text
