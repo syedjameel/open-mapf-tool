@@ -1,4 +1,5 @@
 #include "App.h"
+#include "Version.h"
 #include <iostream>
 
 void ImGuiMapfApp::setupImGui(GLFWwindow* window, const char* glslVersion)
@@ -129,7 +130,7 @@ int ImGuiMapfApp::run()
     int width = m_env.m_width >= 320 ? static_cast<int>(m_env.m_width) : 1280;
     int height = m_env.m_height >= 240 ? static_cast<int>(m_env.m_height) : 720;
 
-    GLFWwindow* window = glfwCreateWindow(width, height, "OpenMAPF", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(width, height, "OpenMAPF v" OPENMAPF_VERSION, nullptr, nullptr);
     if (window == nullptr)
     {
         std::cerr << "Error: failed to create a window/OpenGL context" << std::endl;

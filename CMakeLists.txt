@@ -40,7 +40,13 @@ add_library(openmapf_core STATIC
     src/PathManager.cpp
 )
 
-target_include_directories(openmapf_core PUBLIC src)
+# Generated version header (OPENMAPF_VERSION), available to all targets
+configure_file(src/Version.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/Version.h @ONLY)
+
+target_include_directories(openmapf_core PUBLIC
+    src
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
+)
 target_compile_features(openmapf_core PUBLIC cxx_std_17)
 target_compile_options(openmapf_core PRIVATE ${OPENMAPF_WARNING_FLAGS})
 target_link_libraries(openmapf_core PUBLIC
@@ -93,10 +99,6 @@ target_link_libraries(openmapf PRIVATE
 )
 
 target_compile_options(openmapf PRIVATE ${OPENMAPF_WARNING_FLAGS})
-
-target_compile_definitions(openmapf PRIVATE
-    OPENMAPF_VERSION="${PROJECT_VERSION}"
-)
 
 # ---------------------------------------------------------------------------
 # Unit tests (headless: link openmapf_core only — no ImGui/OpenGL/GLFW)

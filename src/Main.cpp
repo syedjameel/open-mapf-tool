@@ -5,10 +5,7 @@
 
 #include "App.h"
 #include "ConfigLocator.h"
-
-#ifndef OPENMAPF_VERSION
-#define OPENMAPF_VERSION "unknown"
-#endif
+#include "Version.h"
 
 namespace {
 
