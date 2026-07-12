@@ -55,6 +55,7 @@ add_library(openmapf_core STATIC
     src/MapFormat.cpp
     src/PathManager.cpp
     src/ProcessRunner.cpp
+    src/ResultsCsv.cpp
     src/SolverManifest.cpp
 )
 
@@ -171,6 +172,7 @@ if(OPENMAPF_BUILD_TESTS)
         tests/test_environment.cpp
         tests/test_map_format.cpp
         tests/test_process_runner.cpp
+        tests/test_results_csv.cpp
         tests/test_scen_reader.cpp
         tests/test_scen_writer.cpp
         tests/test_solver_driver.cpp
