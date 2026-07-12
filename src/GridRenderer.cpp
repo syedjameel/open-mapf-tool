@@ -1,4 +1,5 @@
 #include "GridRenderer.h"
+#include "MapFormat.h"
 #include <cmath>
 #include <algorithm>
 
@@ -50,10 +51,10 @@ void GridRenderer::drawSquareGrid(ImDrawList* draw_list, const ImVec2& origin, c
             draw_list->AddRect(top_left, bottom_right, current_grid_color);
 
             int v = grid.get(x, y);
-            if (v == 1)
+            if (v == MapFormat::Obstacle)
                 draw_list->AddRectFilled(top_left, bottom_right, IM_COL32(0, 0, 0, 150));
-            else if (v == 2)
-                draw_list->AddRectFilled(top_left, bottom_right, IM_COL32(255, 255, 0, 150));
+            else if (MapFormat::isBlocked(v))
+                draw_list->AddRectFilled(top_left, bottom_right, IM_COL32(34, 100, 34, 150)); // terrain (T/S/W/O)
         }
     }
 }
@@ -115,10 +116,10 @@ void GridRenderer::drawHexGrid(ImDrawList* draw_list, const ImVec2& origin, floa
             
             // Fill based on cell value
             int v = grid.get(col, row);
-            if (v == 1)
+            if (v == MapFormat::Obstacle)
                 draw_list->AddConvexPolyFilled(hex, 6, IM_COL32(0, 0, 0, 150));
-            else if (v == 2)
-                draw_list->AddConvexPolyFilled(hex, 6, IM_COL32(255, 255, 0, 150));
+            else if (MapFormat::isBlocked(v))
+                draw_list->AddConvexPolyFilled(hex, 6, IM_COL32(34, 100, 34, 150)); // terrain (T/S/W/O)
         }
     }
 }

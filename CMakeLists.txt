@@ -38,6 +38,7 @@ add_executable(openmapf
     src/Main.cpp
     src/App.cpp
     src/Environment.cpp
+    src/MapFormat.cpp
     src/GridRenderer.cpp
     src/PathManager.cpp
     src/AnimationController.cpp
@@ -79,7 +80,9 @@ if(OPENMAPF_BUILD_TESTS)
 
     add_executable(openmapf_tests
         tests/test_environment.cpp
+        tests/test_map_format.cpp
         src/Environment.cpp
+        src/MapFormat.cpp
     )
 
     # vendor/imgui is needed for headers only (Environment.h -> GridRenderer.h

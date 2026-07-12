@@ -1,5 +1,6 @@
 #include "UIManager.h"
 #include "GridRenderer.h"
+#include "MapFormat.h"
 #include <iostream>
 #include <fstream>
 #include <cstring>
@@ -817,9 +818,9 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
 
     Coord clickedPos = CoordUtils::make_coord(col, row);
     
-    // Check if there's an obstacle at this position
-    if (m_env.m_grid.get(col, row) == 1)
-        return; // Can't place agent on obstacle
+    // Check if there's blocked terrain at this position
+    if (MapFormat::isBlocked(m_env.m_grid.get(col, row)))
+        return; // Can't place agent on blocked cell
 
     // Check if we're clicking on an existing agent
     for (size_t i = 0; i < m_dynamicAgents.size(); ++i)
@@ -1092,21 +1093,7 @@ void UIManager::saveMapFile(const std::string& filename)
         throw std::runtime_error("Cannot open file for writing: " + filename);
     }
     
-    file << "type octile\n";
-    file << "height " << m_env.m_rows << "\n";
-    file << "width " << m_env.m_cols << "\n";
-    file << "map\n";
-    
-    for (size_t row = 0; row < m_env.m_rows; ++row)
-    {
-        for (size_t col = 0; col < m_env.m_cols; ++col)
-        {
-            int val = m_env.m_grid.get(col, row);
-            file << (val == 1 ? '@' : '.');
-        }
-        file << "\n";
-    }
-    
+    MapFormat::writeMap(file, m_env.m_grid, m_env.m_cols, m_env.m_rows);
     file.close();
     std::cout << "Map saved to: " << filename << std::endl;
 }

@@ -1,4 +1,5 @@
 #include "Environment.h"
+#include "MapFormat.h"
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -92,15 +93,13 @@ void Environment::loadMap(const std::string& map_path)
     grid_data.reserve(m_rows * m_cols);
 
     for (size_t y = 0; y < m_rows && std::getline(file, line); ++y) {
+        // Tolerate CRLF line endings: '\r' must not enter the grid as terrain
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
         grid_data.push_back(line);
         for (size_t x = 0; x < m_cols && x < line.size(); ++x) {
-            if (line[x] == '.') {
-                m_grid.set(x, y, 0);
-            } else if (line[x] == '@') {
-                m_grid.set(x, y, 1);
-            } else {
-                m_grid.set(x, y, 2);
-            }
+            m_grid.set(x, y, MapFormat::charToCell(line[x]));
         }
     }
     

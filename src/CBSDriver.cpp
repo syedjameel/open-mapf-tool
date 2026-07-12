@@ -1,4 +1,5 @@
 #include "CBSDriver.h"
+#include "MapFormat.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -73,24 +74,7 @@ void CBSDriver::generateMapFile(const Environment& env, const std::string& filen
         throw std::runtime_error("Cannot create map file: " + filename);
     }
     
-    file << "type octile\n";
-    file << "height " << env.m_rows << "\n";
-    file << "width " << env.m_cols << "\n";
-    file << "map\n";
-    
-    // Generate map from current grid state
-    for (size_t row = 0; row < env.m_rows; ++row) {
-        for (size_t col = 0; col < env.m_cols; ++col) {
-            if (col < env.m_grid.width() && row < env.m_grid.height()) {
-                int cellValue = env.m_grid.get(col, row);
-                file << (cellValue == 1 ? '@' : '.');  // 1 = obstacle, 0 = free
-            } else {
-                file << '.';
-            }
-        }
-        file << "\n";
-    }
-    
+    MapFormat::writeMap(file, env.m_grid, env.m_cols, env.m_rows);
     file.close();
 }
 

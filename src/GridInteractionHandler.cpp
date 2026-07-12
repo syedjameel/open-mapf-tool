@@ -1,4 +1,5 @@
 #include "GridInteractionHandler.h"
+#include "MapFormat.h"
 
 GridInteractionHandler::GridInteractionHandler(Environment &env)
     : m_env(env)
@@ -45,7 +46,8 @@ void GridInteractionHandler::handleInteraction(const ImVec2& mousePos, const ImV
         }
         
         int val = m_env.m_grid.get(col, row);
-        m_env.m_grid.set(col, row, val == 1 ? 0 : 1); // Invert the value (if ther is an obstacle, remove it or vices versa)
+        // Toggle: any blocked terrain becomes free, free becomes an obstacle
+        m_env.m_grid.set(col, row, MapFormat::isBlocked(val) ? MapFormat::Free : MapFormat::Obstacle);
     }
 }
 
