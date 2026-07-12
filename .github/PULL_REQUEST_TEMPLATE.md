@@ -8,4 +8,4 @@
 - [ ] New/changed logic is covered by tests (fixtures under `tests/fixtures/` where applicable)
 - [ ] Tree is formatted (`clang-format` 18, see CONTRIBUTING.md)
 - [ ] Docs updated if formats, CLI flags, or the results-CSV schema changed (schema is append-only)
-- [ ] No vendored code (`vendor/`, `src/imfilebrowser.h`) was reformatted or modified
+- [ ] No vendored code (`vendor/`, `vendor/imgui-filebrowser/imfilebrowser.h`) was reformatted or modified

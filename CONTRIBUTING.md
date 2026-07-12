@@ -30,7 +30,7 @@ pip install clang-format==18.1.8
 clang-format -i $(ls src/*.cpp src/*.h tests/*.cpp tests/*.h | grep -v imfilebrowser)
 ```
 
-Vendored code (`vendor/`, `src/imfilebrowser.h`) is never reformatted.
+Vendored code (`vendor/`, `vendor/imgui-filebrowser/imfilebrowser.h`) is never reformatted.
 
 ## Tests
 

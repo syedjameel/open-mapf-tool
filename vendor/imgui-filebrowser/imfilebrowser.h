@@ -1,3 +1,8 @@
+// imgui-filebrowser — a file browser widget for Dear ImGui.
+// Vendored from https://github.com/AirGuanZ/imgui-filebrowser
+// Copyright (c) 2019-2025 Zhuang Guan. Licensed under the MIT License;
+// see THIRD_PARTY_NOTICES.md at the repository root for the full text.
+// Local modifications: none (this attribution header only).
 #pragma once
 
 #include <algorithm>

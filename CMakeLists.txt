@@ -124,6 +124,9 @@ add_executable(openmapf
     src/GridInteractionHandler.cpp
 )
 
+# vendored imgui-filebrowser (header-only, GUI target only)
+target_include_directories(openmapf PRIVATE vendor/imgui-filebrowser)
+
 target_link_libraries(openmapf PRIVATE
     openmapf_core
     imgui
