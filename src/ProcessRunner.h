@@ -11,9 +11,11 @@ struct subprocess_s; // from vendored subprocess.h (implementation file only)
 // stdout/stderr, and supports killing the child from another thread.
 // Replaces the previous std::system() usage (plan defect A5: shell
 // injection/space breakage, and cancel() that could not stop the child).
-class ProcessRunner {
+class ProcessRunner
+{
 public:
-    struct Result {
+    struct Result
+    {
         bool started = false;    // false: program could not be launched
         bool terminated = false; // true: killed via terminate()
         int exitCode = -1;

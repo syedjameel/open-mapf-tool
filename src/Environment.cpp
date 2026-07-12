@@ -18,9 +18,7 @@ Environment::Environment()
     setDefaults();
 }
 
-Environment::~Environment()
-{
-}
+Environment::~Environment() {}
 
 void Environment::setDefaults()
 {
@@ -67,7 +65,8 @@ bool Environment::loadConfig(const std::string& config_path)
             m_solver_lacam3 = s["lacam3"].as<std::string>(m_solver_lacam3);
         }
 
-        m_grid = Grid<int>(m_cols, m_rows, 0); // reset the grid size whenever you read new row and col size
+        m_grid = Grid<int>(m_cols, m_rows,
+                           0); // reset the grid size whenever you read new row and col size
         calculateTileSizes();
         return true;
     } catch (const std::exception& e) {
@@ -125,7 +124,7 @@ void Environment::loadMap(const std::string& map_path)
             m_grid.set(x, y, MapFormat::charToCell(line[x]));
         }
     }
-    
+
     // Update derived dimensions
     // m_tile_size = (m_height - 100) / std::max(m_cols, m_rows);
     // m_width = m_tile_size * m_cols + m_tile_size;
@@ -140,7 +139,7 @@ void Environment::calculateTileSizes()
     // Calculate square tile dimensions
     m_square_tile_size = (m_height - UI_MARGIN) / std::max(m_cols, m_rows);
     m_square_agent_size = m_square_tile_size / (2 * SQRT_2);
-    
+
     // Calculate hexagonal tile dimensions
     // Hexagon area = (3√3 / 2) * s² where s is the side length
     float temp = (m_height - UI_MARGIN) / std::max(m_cols, m_rows);

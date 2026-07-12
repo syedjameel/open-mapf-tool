@@ -16,10 +16,9 @@ TEST_CASE("writeScen emits MovingAI scen v1 with real map dimensions", "[scen]")
     // Regression test for defect A2: dimensions were hardcoded to 64 64.
     MapFormat::writeScen(out, agents, "arena.map", 12, 34);
 
-    CHECK(out.str() ==
-          "version 1\n"
-          "0\tarena.map\t12\t34\t1\t2\t3\t4\t0\n"
-          "2\tarena.map\t12\t34\t7\t8\t9\t10\t0\n");
+    CHECK(out.str() == "version 1\n"
+                       "0\tarena.map\t12\t34\t1\t2\t3\t4\t0\n"
+                       "2\tarena.map\t12\t34\t7\t8\t9\t10\t0\n");
 }
 
 TEST_CASE("writeScen with no goal-carrying agents writes only the header", "[scen]")

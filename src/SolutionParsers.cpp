@@ -59,8 +59,7 @@ void LacamOutputParser::parse(const std::string& outputFile, const std::string& 
     std::ifstream in(outputFile);
     std::ofstream out(pathsFile);
     if (!in.is_open() || !out.is_open() || !LacamDriverBase::convertLacamPaths(in, out)) {
-        outcome.errorMessage =
-            "Failed to convert " + m_algorithmName + " paths to standard format";
+        outcome.errorMessage = "Failed to convert " + m_algorithmName + " paths to standard format";
         return;
     }
 

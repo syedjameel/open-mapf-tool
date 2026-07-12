@@ -8,7 +8,8 @@
 // results schema documented in docs/file-formats.md. This is both the GUI
 // "Export results" format and the batch experiment runner's output format,
 // so downstream pandas/plot pipelines can rely on one schema.
-struct RunRecord {
+struct RunRecord
+{
     std::string solver;     // e.g. "CBS", "LaCAM2"
     std::string map;        // map name or file
     std::string scenario;   // scen file name, or "interactive"

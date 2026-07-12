@@ -16,7 +16,8 @@
 // If nothing is found the caller falls back to compiled-in defaults.
 namespace ConfigLocator {
 
-struct Inputs {
+struct Inputs
+{
     std::string cliPath;       // value of --config, empty if not given
     std::string envPath;       // $OPENMAPF_CONFIG, empty if unset
     std::string xdgConfigHome; // $XDG_CONFIG_HOME, empty if unset
@@ -27,8 +28,7 @@ struct Inputs {
 // Candidate config paths in priority order (pure function, unit-tested).
 // `fileName` selects which file is being discovered within the same
 // locations (e.g. "env.yaml", "solvers.yaml").
-std::vector<std::string> candidatePaths(const Inputs& in,
-                                        const std::string& fileName = "env.yaml");
+std::vector<std::string> candidatePaths(const Inputs& in, const std::string& fileName = "env.yaml");
 
 // First candidate for which `exists` returns true, or nullopt.
 std::optional<std::string> resolve(const Inputs& in,

@@ -57,29 +57,27 @@ public:
     ~CBSDriver() = default;
 
     // Main solve method
-    void solveAsync(const std::vector<Agent> &agents,
-                    const Environment &env,
-                    const CBSParameters &params,
-                    const std::string &mapName,
-                    std::function<void(const CBSResults &)> callback,
-                    const std::string &tempDir = "",
-                    std::function<void(const std::string &)> tempFileCallback = nullptr);
+    void solveAsync(const std::vector<Agent>& agents, const Environment& env,
+                    const CBSParameters& params, const std::string& mapName,
+                    std::function<void(const CBSResults&)> callback,
+                    const std::string& tempDir = "",
+                    std::function<void(const std::string&)> tempFileCallback = nullptr);
 
     // Solver executable path ("" = not configured)
-    void setExecutablePath(const std::string &path) { m_engine.setExecutablePath(path); }
-    const std::string &getExecutablePath() const { return m_engine.getExecutablePath(); }
+    void setExecutablePath(const std::string& path) { m_engine.setExecutablePath(path); }
+    const std::string& getExecutablePath() const { return m_engine.getExecutablePath(); }
 
     // Status checking
     bool isRunning() const { return m_engine.isRunning(); }
     void cancel() { m_engine.cancel(); }
 
     // Results access (last completed run)
-    const CBSResults &getResults() const { return m_results; }
+    const CBSResults& getResults() const { return m_results; }
 
     // Parse a CBSH2-RTC results CSV stream (header + one row per restart;
     // the last valid row wins). Returns false if no usable row exists.
     // Static and stream-based so it is unit-testable against fixtures.
-    static bool parseResultsCsv(std::istream &in, CBSResults &results);
+    static bool parseResultsCsv(std::istream& in, CBSResults& results);
 
 private:
     ExternalSolverDriver m_engine;

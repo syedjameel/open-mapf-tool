@@ -10,21 +10,23 @@
 // expanded in that (deterministic) order, then shuffled with a fixed,
 // recorded seed so heavy instances spread across time (reference design:
 // the authors' benchmark-v3 E1/E2 runners).
-struct ExperimentInstance {
+struct ExperimentInstance
+{
     std::string mapPath;  // absolute (resolved against the spec file's dir)
     std::string scenPath; // absolute (resolved against the spec file's dir)
 };
 
-struct ExperimentSpec {
+struct ExperimentSpec
+{
     std::string name;
     std::string specPath;  // where the spec was loaded from (absolute)
     std::string outputDir; // results.csv + manifest.yaml live here (absolute)
     int timeLimitS = 30;
     std::uint32_t shuffleSeed = 0;
-    std::vector<int> seeds;             // default {0}
-    std::vector<int> agentLadder;       // required
-    std::vector<std::string> solvers;   // required (manifest keys)
-    std::vector<std::string> grids;     // default {"square"}
+    std::vector<int> seeds;                    // default {0}
+    std::vector<int> agentLadder;              // required
+    std::vector<std::string> solvers;          // required (manifest keys)
+    std::vector<std::string> grids;            // default {"square"}
     std::vector<ExperimentInstance> instances; // required
 
     // Parse + validate. Throws std::runtime_error with an actionable
@@ -34,7 +36,8 @@ struct ExperimentSpec {
 };
 
 // One cell of the expanded run matrix.
-struct RunTask {
+struct RunTask
+{
     std::string solver;   // manifest key
     std::string mapPath;  // absolute
     std::string scenPath; // absolute
@@ -43,9 +46,9 @@ struct RunTask {
     int seed = 0;
     int timeLimitS = 0;
 
-    std::string mapName() const;  // basename without extension
-    std::string scenName() const; // basename with extension
-    std::string gridType() const; // "square" or "hex"
+    std::string mapName() const;   // basename without extension
+    std::string scenName() const;  // basename with extension
+    std::string gridType() const;  // "square" or "hex"
     std::string hexLayout() const; // "", "oddr", ...
 
     // Resume key: matches the first 8 columns of the results CSV.

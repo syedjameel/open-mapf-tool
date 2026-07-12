@@ -13,26 +13,26 @@
 struct LacamParameters
 {
     // Core parameters
-    int timeLimit = 10;                      // -t parameter
-    int seed = 0;                            // -s parameter
-    bool logShort = false;                   // -l parameter
-    int verbose = 0;                         // -v parameter
+    int timeLimit = 10;    // -t parameter
+    int seed = 0;          // -s parameter
+    bool logShort = false; // -l parameter
+    int verbose = 0;       // -v parameter
 
     // Grid configuration
-    bool hexGrid = false;                    // --grid_type hex
-    std::string hexConfig = "odd-row";       // --hex_config
+    bool hexGrid = false;              // --grid_type hex
+    std::string hexConfig = "odd-row"; // --hex_config
 };
 
 // LaCAM Results Structure
 struct LacamResults
 {
     bool solutionFound = false;
-    int solutionCost = -1;  // sum of costs (soc)
+    int solutionCost = -1; // sum of costs (soc)
     int makespan = -1;
     double runtime = 0.0;
     int numAgents = 0;
     std::string errorMessage = "";
-    std::string pathsFile = "";  // Path to the generated paths file
+    std::string pathsFile = ""; // Path to the generated paths file
 
     // LaCAM specific metrics
     int socLowerBound = -1;
@@ -51,10 +51,8 @@ public:
     virtual ~LacamDriverBase() = default;
 
     // Main solve method
-    void solveAsync(const std::vector<Agent>& agents,
-                    const Environment& env,
-                    const LacamParameters& params,
-                    const std::string& mapName,
+    void solveAsync(const std::vector<Agent>& agents, const Environment& env,
+                    const LacamParameters& params, const std::string& mapName,
                     std::function<void(const LacamResults&)> callback,
                     const std::string& tempDir = "",
                     std::function<void(const std::string&)> tempFileCallback = nullptr);

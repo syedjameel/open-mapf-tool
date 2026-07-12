@@ -1,16 +1,16 @@
 #include "UIManager.h"
 #include "ConfigLocator.h"
-#include "Version.h"
 #include "GridRenderer.h"
 #include "MapFormat.h"
-#include <unistd.h> // ::getpid
-#include <iostream>
-#include <fstream>
+#include "Version.h"
 #include <cstring>
+#include <fstream>
+#include <iostream>
 #include <sstream>
+#include <unistd.h> // ::getpid
 
-UIManager::UIManager(Environment& env, PathManager& pathManager, AnimationController& animController,
-                     SolverManifest& solverManifest)
+UIManager::UIManager(Environment& env, PathManager& pathManager,
+                     AnimationController& animController, SolverManifest& solverManifest)
     : m_env(env), m_pathManager(pathManager), m_animController(animController),
       m_solvers(solverManifest)
 {
@@ -86,153 +86,146 @@ void UIManager::setupFileDialogs()
     m_experimentFileDialog.SetTypeFilters({".yaml", ".yml"});
 }
 
-void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_pos, const ImVec2& canvas_size, const ImVec2& origin, float zoom)
+void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_pos,
+                                  const ImVec2& canvas_size, const ImVec2& origin, float zoom)
 {
     // Draw grid
-    if (m_env.m_square)
-    {
-        GridRenderer::drawSquareGrid(draw_list, origin, canvas_pos, 
-                                    ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y), 
-                                    m_env.m_square_tile_size, zoom, m_env.m_grid);
+    if (m_env.m_square) {
+        GridRenderer::drawSquareGrid(
+            draw_list, origin, canvas_pos,
+            ImVec2(canvas_pos.x + canvas_size.x, canvas_pos.y + canvas_size.y),
+            m_env.m_square_tile_size, zoom, m_env.m_grid);
+    } else if (m_env.m_hexagon) {
+        GridRenderer::drawHexGrid(draw_list, origin, zoom, m_env.m_grid, m_env.m_hex_tile_size,
+                                  m_env.m_hex_grid_type);
     }
-    else if (m_env.m_hexagon)
-    {
-        GridRenderer::drawHexGrid(draw_list, origin, zoom, m_env.m_grid, m_env.m_hex_tile_size, m_env.m_hex_grid_type);
-    }
-    
+
     // Draw goal markers for agents
     const auto& paths = m_pathManager.getPaths();
     const auto& pathIndices = m_animController.getPathIndices();
-    
+
     // Draw goal markers (if paths are loaded and not in Add/Remove Agents mode)
-    if (!paths.empty() && !m_addRemoveAgents)
-    {
-        for (size_t i = 0; i < paths.size(); ++i)
-        {
+    if (!paths.empty() && !m_addRemoveAgents) {
+        for (size_t i = 0; i < paths.size(); ++i) {
             const auto& path = paths[i];
             if (path.empty())
                 continue;
-                
+
             // Get the agent's goal (last coordinate in path)
             Coord goal = path.back();
-            
+
             // Check if agent has reached its goal
             bool reachedGoal = false;
-            if (i < pathIndices.size())
-            {
+            if (i < pathIndices.size()) {
                 size_t idx = pathIndices[i];
                 if (idx >= path.size() - 1)
                     reachedGoal = true;
             }
-            
+
             // Draw goal marker if agent hasn't reached it yet
-            if (!reachedGoal)
-            {
-                ImVec2 goalPos = GridRenderer::gridToWorld(CoordUtils::x(goal), CoordUtils::y(goal), m_env.m_hexagon,
-                                          m_env.m_hexagon ? m_env.m_hex_tile_size : m_env.m_square_tile_size,
-                                          origin, zoom, m_env.m_hex_grid_type);
-                                          
+            if (!reachedGoal) {
+                ImVec2 goalPos = GridRenderer::gridToWorld(
+                    CoordUtils::x(goal), CoordUtils::y(goal), m_env.m_hexagon,
+                    m_env.m_hexagon ? m_env.m_hex_tile_size : m_env.m_square_tile_size, origin,
+                    zoom, m_env.m_hex_grid_type);
+
                 // Draw an unfilled square with the same color as the agent
-                float markerSize = (m_env.m_hexagon ? m_env.m_hex_agent_size : m_env.m_square_agent_size) * 0.7f * zoom;
+                float markerSize =
+                    (m_env.m_hexagon ? m_env.m_hex_agent_size : m_env.m_square_agent_size) * 0.7f *
+                    zoom;
                 ImVec2 halfSize(markerSize, markerSize);
-                draw_list->AddRect(
-                    ImVec2(goalPos.x - halfSize.x, goalPos.y - halfSize.y),
-                    ImVec2(goalPos.x + halfSize.x, goalPos.y + halfSize.y),
-                    getColorForAgent(i),
-                    0.0f,
-                    0,
-                    2.0f * zoom
-                );
-                
+                draw_list->AddRect(ImVec2(goalPos.x - halfSize.x, goalPos.y - halfSize.y),
+                                   ImVec2(goalPos.x + halfSize.x, goalPos.y + halfSize.y),
+                                   getColorForAgent(i), 0.0f, 0, 2.0f * zoom);
+
                 // Draw agent ID on the goal marker with size proportional to marker size
                 char buf[16];
                 snprintf(buf, sizeof(buf), "%zu", i);
-                
+
                 // Scale text to fit within the marker (about 60% of size)
                 float text_scale = markerSize * 0.06f;
                 ImGui::GetFont()->Scale = text_scale;
                 ImGui::PushFont(ImGui::GetFont());
-                
+
                 ImVec2 text_size = ImGui::CalcTextSize(buf);
-                
+
                 // Center text properly in the goal marker
                 draw_list->AddText(
                     ImVec2(goalPos.x - text_size.x * 0.5f, goalPos.y - text_size.y * 0.5f),
-                    IM_COL32(255, 255, 255, 255), buf
-                );
-                
+                    IM_COL32(255, 255, 255, 255), buf);
+
                 // Restore font scale
                 ImGui::GetFont()->Scale = 1.0f;
                 ImGui::PopFont();
             }
         }
     }
-    
+
     // Draw paths if enabled
-    if (m_animController.showPaths())
-    {
+    if (m_animController.showPaths()) {
         const auto& paths = m_pathManager.getPaths();
         const auto& pathIndices = m_animController.getPathIndices();
-        float alpha = std::clamp(m_animController.getFrameTimer() / AnimationController::STEP_INTERVAL, 0.0f, 1.0f);
-        
-        for (size_t i = 0; i < paths.size(); ++i)
-        {
+        float alpha = std::clamp(
+            m_animController.getFrameTimer() / AnimationController::STEP_INTERVAL, 0.0f, 1.0f);
+
+        for (size_t i = 0; i < paths.size(); ++i) {
             const auto& path = paths[i];
             if (path.size() < 2 || i >= pathIndices.size())
                 continue;
-                
+
             size_t idx = pathIndices[i];
             if (idx >= path.size() - 1)
                 continue;
-                
+
             ImU32 color = getColorForAgent(i);
             float thickness = 2.0f;
-            
+
             auto [gx1, gy1] = path[idx];
             auto [gx2, gy2] = path[idx + 1];
-            
+
             ImVec2 pos1 = GridRenderer::gridToWorld(gx1, gy1, m_env.m_hexagon,
-                                      m_env.m_hexagon ? m_env.m_hex_tile_size : m_env.m_square_tile_size,
-                                      origin, zoom, m_env.m_hex_grid_type);
+                                                    m_env.m_hexagon ? m_env.m_hex_tile_size
+                                                                    : m_env.m_square_tile_size,
+                                                    origin, zoom, m_env.m_hex_grid_type);
             ImVec2 pos2 = GridRenderer::gridToWorld(gx2, gy2, m_env.m_hexagon,
-                                      m_env.m_hexagon ? m_env.m_hex_tile_size : m_env.m_square_tile_size,
-                                      origin, zoom, m_env.m_hex_grid_type);
-            
+                                                    m_env.m_hexagon ? m_env.m_hex_tile_size
+                                                                    : m_env.m_square_tile_size,
+                                                    origin, zoom, m_env.m_hex_grid_type);
+
             // Interpolated current position
-            ImVec2 current = ImVec2(
-                pos1.x + (pos2.x - pos1.x) * alpha,
-                pos1.y + (pos2.y - pos1.y) * alpha);
-                
+            ImVec2 current =
+                ImVec2(pos1.x + (pos2.x - pos1.x) * alpha, pos1.y + (pos2.y - pos1.y) * alpha);
+
             // Draw remaining part of the current segment
             draw_list->AddLine(current, pos2, color, thickness);
-            
+
             // Draw full segments beyond the current one
-            for (size_t j = idx + 1; j < path.size() - 1; ++j)
-            {
+            for (size_t j = idx + 1; j < path.size() - 1; ++j) {
                 auto [gx_a, gy_a] = path[j];
                 auto [gx_b, gy_b] = path[j + 1];
-                
+
                 ImVec2 a = GridRenderer::gridToWorld(gx_a, gy_a, m_env.m_hexagon,
-                                       m_env.m_hexagon ? m_env.m_hex_tile_size : m_env.m_square_tile_size,
-                                       origin, zoom, m_env.m_hex_grid_type);
+                                                     m_env.m_hexagon ? m_env.m_hex_tile_size
+                                                                     : m_env.m_square_tile_size,
+                                                     origin, zoom, m_env.m_hex_grid_type);
                 ImVec2 b = GridRenderer::gridToWorld(gx_b, gy_b, m_env.m_hexagon,
-                                       m_env.m_hexagon ? m_env.m_hex_tile_size : m_env.m_square_tile_size,
-                                       origin, zoom, m_env.m_hex_grid_type);
-                                       
+                                                     m_env.m_hexagon ? m_env.m_hex_tile_size
+                                                                     : m_env.m_square_tile_size,
+                                                     origin, zoom, m_env.m_hex_grid_type);
+
                 draw_list->AddLine(a, b, color, thickness);
             }
         }
     }
-    
+
     // Draw dynamic agents (from Add/Remove Agents mode)
-    if (m_addRemoveAgents)
-    {
+    if (m_addRemoveAgents) {
         renderDynamicAgents(draw_list, origin, zoom);
     }
-    
+
     // Draw animated agents (but not when in Add/Remove Agents mode)
-    if ((m_animController.isAnimating() || !m_pathManager.getPaths().empty()) && !m_addRemoveAgents)
-    {
+    if ((m_animController.isAnimating() || !m_pathManager.getPaths().empty()) &&
+        !m_addRemoveAgents) {
         const auto& paths = m_pathManager.getPaths();
 
         // Ensure we have valid path indices (bind the reference only after
@@ -242,51 +235,56 @@ void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_po
         }
         const auto& pathIndices = m_animController.getPathIndices();
         float alpha = m_animController.getFrameTimer() / AnimationController::STEP_INTERVAL;
-        
-        for (size_t i = 0; i < paths.size(); ++i)
-        {
+
+        for (size_t i = 0; i < paths.size(); ++i) {
             if (i >= pathIndices.size())
                 continue;
-                
+
             const auto& path = paths[i];
             if (path.empty())
                 continue;
-                
+
             size_t idx = pathIndices[i];
             if (idx >= path.size())
                 idx = path.size() - 1;
-                
+
             Coord p1 = path[idx];
             Coord p2 = (idx + 1 < path.size()) ? path[idx + 1] : p1;
-            
-            ImVec2 pos1 = GridRenderer::gridToWorld(CoordUtils::x(p1), CoordUtils::y(p1), m_env.m_hexagon,
-                                      m_env.m_hexagon ? m_env.m_hex_tile_size : m_env.m_square_tile_size,
-                                      origin, zoom, m_env.m_hex_grid_type);
-            ImVec2 pos2 = GridRenderer::gridToWorld(CoordUtils::x(p2), CoordUtils::y(p2), m_env.m_hexagon,
-                                      m_env.m_hexagon ? m_env.m_hex_tile_size : m_env.m_square_tile_size,
-                                      origin, zoom, m_env.m_hex_grid_type);
-                                      
-            ImVec2 interp_pos = m_animController.isAnimating() ? 
-                ImVec2(pos1.x + (pos2.x - pos1.x) * alpha, pos1.y + (pos2.y - pos1.y) * alpha) : pos1;
-                
-            float agent_radius = (m_env.m_hexagon ? m_env.m_hex_agent_size : m_env.m_square_agent_size) * zoom;
-            
+
+            ImVec2 pos1 = GridRenderer::gridToWorld(
+                CoordUtils::x(p1), CoordUtils::y(p1), m_env.m_hexagon,
+                m_env.m_hexagon ? m_env.m_hex_tile_size : m_env.m_square_tile_size, origin, zoom,
+                m_env.m_hex_grid_type);
+            ImVec2 pos2 = GridRenderer::gridToWorld(
+                CoordUtils::x(p2), CoordUtils::y(p2), m_env.m_hexagon,
+                m_env.m_hexagon ? m_env.m_hex_tile_size : m_env.m_square_tile_size, origin, zoom,
+                m_env.m_hex_grid_type);
+
+            ImVec2 interp_pos =
+                m_animController.isAnimating()
+                    ? ImVec2(pos1.x + (pos2.x - pos1.x) * alpha, pos1.y + (pos2.y - pos1.y) * alpha)
+                    : pos1;
+
+            float agent_radius =
+                (m_env.m_hexagon ? m_env.m_hex_agent_size : m_env.m_square_agent_size) * zoom;
+
             // Draw agent circle with its color
             draw_list->AddCircleFilled(interp_pos, agent_radius, getColorForAgent(i));
-            
+
             // Draw agent ID text centered in the circle with size proportional to agent radius
             char buf[16];
             snprintf(buf, sizeof(buf), "%zu", i);
-            
+
             // Scale text to fit within the circle (about 60% of diameter)
             float text_scale = agent_radius * 0.06f;
             ImGui::GetFont()->Scale = text_scale;
             ImGui::PushFont(ImGui::GetFont());
-            
+
             ImVec2 text_size = ImGui::CalcTextSize(buf);
-            draw_list->AddText(ImVec2(interp_pos.x - text_size.x * 0.5f, interp_pos.y - text_size.y * 0.5f), 
-                              IM_COL32(255, 255, 255, 255), buf);
-            
+            draw_list->AddText(
+                ImVec2(interp_pos.x - text_size.x * 0.5f, interp_pos.y - text_size.y * 0.5f),
+                IM_COL32(255, 255, 255, 255), buf);
+
             // Restore font scale
             ImGui::GetFont()->Scale = 1.0f;
             ImGui::PopFont();
@@ -297,80 +295,68 @@ void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_po
 void UIManager::renderControlPanel()
 {
     ImGui::Begin("Control Panel");
-    
-    if (ImGui::BeginTabBar("##ControlTabs", ImGuiTabBarFlags_FittingPolicyScroll))
-    {
-        if (ImGui::BeginTabItem("Map"))
-        {
+
+    if (ImGui::BeginTabBar("##ControlTabs", ImGuiTabBarFlags_FittingPolicyScroll)) {
+        if (ImGui::BeginTabItem("Map")) {
             renderMapTab();
             ImGui::EndTabItem();
         }
-        
-        if (ImGui::BeginTabItem("Algorithm"))
-        {
+
+        if (ImGui::BeginTabItem("Algorithm")) {
             renderAlgorithmTab();
             ImGui::EndTabItem();
         }
-        
-        if (ImGui::BeginTabItem("Grid & Size"))
-        {
+
+        if (ImGui::BeginTabItem("Grid & Size")) {
             renderGridSizeTab();
             ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("Solvers"))
-        {
+        if (ImGui::BeginTabItem("Solvers")) {
             renderSolversTab();
             ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("Experiments"))
-        {
+        if (ImGui::BeginTabItem("Experiments")) {
             renderExperimentsTab();
             ImGui::EndTabItem();
         }
-        
-        if (ImGui::BeginTabItem("Paths"))
-        {
+
+        if (ImGui::BeginTabItem("Paths")) {
             renderPathsTab();
             ImGui::EndTabItem();
         }
-        
-        if (ImGui::BeginTabItem("Results"))
-        {
+
+        if (ImGui::BeginTabItem("Results")) {
             renderResultsTab();
             ImGui::EndTabItem();
         }
-        
+
         ImGui::EndTabBar();
     }
-    
+
     ImGui::Separator();
-    
+
     // Animation controls
-    if (!m_pathManager.getPaths().empty())
-    {
+    if (!m_pathManager.getPaths().empty()) {
         renderAnimationControls();
     }
-    
+
     ImGui::End();
-    
+
     // Render dialogs
-    if (m_showMapNameDialog)
-    {
+    if (m_showMapNameDialog) {
         renderMapNameDialog();
     }
-    
-    if (m_showSaveScenarioDialog)
-    {
+
+    if (m_showSaveScenarioDialog) {
         renderSaveScenarioDialog();
     }
 
-    if (m_showScenLoadDialog)
-    {
+    if (m_showScenLoadDialog) {
         renderScenLoadDialog();
     }
-    
+
     // Algorithm parameter dialogs
     if (m_selectedAlgo == 0) {
         renderCBSParametersDialog();
@@ -381,51 +367,41 @@ void UIManager::renderControlPanel()
         renderLacamProgressDialog();
         renderLacamResultsDialog();
     }
-    
 }
 
 void UIManager::renderMapTab()
 {
     ImGui::Spacing();
-    if (ImGui::Button("Load Map"))
-    {
+    if (ImGui::Button("Load Map")) {
         m_fileDialog.Open();
     }
     m_fileDialog.Display();
 
-    if (ImGui::Button("Load Scenario"))
-    {
+    if (ImGui::Button("Load Scenario")) {
         m_scenFileDialog.Open();
     }
     m_scenFileDialog.Display();
-    if (!m_scenLoadStatus.empty())
-    {
+    if (!m_scenLoadStatus.empty()) {
         ImGui::TextWrapped("%s", m_scenLoadStatus.c_str());
     }
-    
-    if (ImGui::Button("Remove Map"))
-    {
+
+    if (ImGui::Button("Remove Map")) {
         m_env.m_grid = Grid<int>(m_env.m_cols, m_env.m_rows, 0);
     }
-    
-    if (ImGui::Button("Clean Temp Files"))
-    {
+
+    if (ImGui::Button("Clean Temp Files")) {
         cleanupTempFiles();
     }
-    
+
     ImGui::Separator();
-    if (ImGui::Checkbox("Add/Remove Obstacles", &m_addRemoveObstacles))
-    {
-        if (m_addRemoveObstacles)
-        {
+    if (ImGui::Checkbox("Add/Remove Obstacles", &m_addRemoveObstacles)) {
+        if (m_addRemoveObstacles) {
             m_addRemoveAgents = false;
         }
     }
-    
-    if (ImGui::Checkbox("Add/Remove Agents", &m_addRemoveAgents))
-    {
-        if (m_addRemoveAgents)
-        {
+
+    if (ImGui::Checkbox("Add/Remove Agents", &m_addRemoveAgents)) {
+        if (m_addRemoveAgents) {
             m_addRemoveObstacles = false;
             // Clear animation data when entering Add/Remove Agents mode
             // This ensures no stale paths remain from previous algorithm runs
@@ -433,25 +409,22 @@ void UIManager::renderMapTab()
             m_animController.reset();
         }
     }
-    
+
     ImGui::Text("Agents: %zu", m_dynamicAgents.size());
     size_t agentsWithGoals = 0;
-    for (const auto& agent : m_dynamicAgents)
-    {
-        if (agent.hasGoal) agentsWithGoals++;
+    for (const auto& agent : m_dynamicAgents) {
+        if (agent.hasGoal)
+            agentsWithGoals++;
     }
     ImGui::Text("With Goals: %zu", agentsWithGoals);
-    
+
     // Show agent info and save button when in agent mode or when agents exist
-    if (m_addRemoveAgents || m_dynamicAgents.size() > 0)
-    {
+    if (m_addRemoveAgents || m_dynamicAgents.size() > 0) {
         ImGui::Separator();
-        
+
         // Clear agents button (show when in agent mode or when agents exist)
-        if (m_addRemoveAgents || m_dynamicAgents.size() > 0)
-        {
-            if (ImGui::Button("Clear Agents"))
-            {
+        if (m_addRemoveAgents || m_dynamicAgents.size() > 0) {
+            if (ImGui::Button("Clear Agents")) {
                 m_dynamicAgents.clear();
                 m_nextAgentId = 0;
                 m_pendingAgentIndex = SIZE_MAX;
@@ -461,18 +434,13 @@ void UIManager::renderMapTab()
                 cleanupTempFiles();
             }
         }
-        
-        if (m_dynamicAgents.size() > 0)
-        {
-            if (ImGui::Button("Save Scenario"))
-            {
+
+        if (m_dynamicAgents.size() > 0) {
+            if (ImGui::Button("Save Scenario")) {
                 // Check if we have a map name
-                if (m_currentMapName.empty())
-                {
+                if (m_currentMapName.empty()) {
                     m_showMapNameDialog = true;
-                }
-                else
-                {
+                } else {
                     m_showSaveScenarioDialog = true;
                 }
             }
@@ -484,10 +452,8 @@ void UIManager::renderAlgorithmTab()
 {
     ImGui::Spacing();
     ImGui::Text("Select algorithm:");
-    if (ImGui::BeginCombo("##AlgoCombo", m_algoNames[m_selectedAlgo].c_str()))
-    {
-        for (int n = 0; n < static_cast<int>(m_algoNames.size()); n++)
-        {
+    if (ImGui::BeginCombo("##AlgoCombo", m_algoNames[m_selectedAlgo].c_str())) {
+        for (int n = 0; n < static_cast<int>(m_algoNames.size()); n++) {
             bool is_selected = (m_selectedAlgo == n);
             if (ImGui::Selectable(m_algoNames[n].c_str(), is_selected))
                 m_selectedAlgo = n;
@@ -496,16 +462,15 @@ void UIManager::renderAlgorithmTab()
         }
         ImGui::EndCombo();
     }
-    
+
     ImGui::Separator();
-    
-    if (ImGui::Button("Set Parameters"))
-    {
+
+    if (ImGui::Button("Set Parameters")) {
         m_showAlgoParams = true;
     }
-    
+
     ImGui::Separator();
-    
+
     // Show agent count and status
     size_t agentsWithGoals = 0;
     for (const auto& agent : m_dynamicAgents) {
@@ -513,14 +478,15 @@ void UIManager::renderAlgorithmTab()
             agentsWithGoals++;
         }
     }
-    
+
     ImGui::Text("Agents with goals: %zu", agentsWithGoals);
-    
+
     if (agentsWithGoals == 0) {
-        ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Add agents with goals to enable solving");
+        ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f),
+                           "Add agents with goals to enable solving");
     } else {
         // Handle CBS algorithm
-        if (m_selectedAlgo == 0) {  // CBS
+        if (m_selectedAlgo == 0) { // CBS
             if (m_cbsRunning) {
                 if (ImGui::Button("Cancel CBS")) {
                     m_cbsDriver.cancel();
@@ -537,14 +503,17 @@ void UIManager::renderAlgorithmTab()
             }
         }
         // Handle LaCAM algorithms
-        else if (m_selectedAlgo >= 1 && m_selectedAlgo <= 3) {  // LaCAM, LaCAM2, LaCAM3
+        else if (m_selectedAlgo >= 1 && m_selectedAlgo <= 3) { // LaCAM, LaCAM2, LaCAM3
             if (m_lacamRunning) {
                 std::string cancelButton = "Cancel " + m_algoNames[m_selectedAlgo];
                 if (ImGui::Button(cancelButton.c_str())) {
                     // Cancel the appropriate LaCAM variant
-                    if (m_selectedAlgo == 1) m_lacamDriver.cancel();
-                    else if (m_selectedAlgo == 2) m_lacam2Driver.cancel();
-                    else if (m_selectedAlgo == 3) m_lacam3Driver.cancel();
+                    if (m_selectedAlgo == 1)
+                        m_lacamDriver.cancel();
+                    else if (m_selectedAlgo == 2)
+                        m_lacam2Driver.cancel();
+                    else if (m_selectedAlgo == 3)
+                        m_lacam3Driver.cancel();
                     m_lacamRunning = false;
                     m_showProgressDialog = false;
                 }
@@ -573,25 +542,30 @@ void UIManager::renderAlgorithmTab()
             ImGui::Text("Low Level Nodes: %d", m_cbsResults.lowLevelNodes);
 
             if (!m_cbsResults.pathsFile.empty()) {
-                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Paths loaded for visualization");
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+                                   "✓ Paths loaded for visualization");
             }
         } else if (!m_cbsResults.errorMessage.empty()) {
             ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "✗ Error:");
             ImGui::TextWrapped("%s", m_cbsResults.errorMessage.c_str());
         }
-    } else if (m_selectedAlgo >= 1 && m_selectedAlgo <= 3 && (m_lacamResults.solutionFound || !m_lacamResults.errorMessage.empty())) {
+    } else if (m_selectedAlgo >= 1 && m_selectedAlgo <= 3 &&
+               (m_lacamResults.solutionFound || !m_lacamResults.errorMessage.empty())) {
         ImGui::Separator();
         ImGui::Text("%s Results:", m_algoNames[m_selectedAlgo].c_str());
 
         if (m_lacamResults.solutionFound) {
             ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Solution Found!");
-            ImGui::Text("Sum of Costs: %d (LB: %d)", m_lacamResults.solutionCost, m_lacamResults.socLowerBound);
-            ImGui::Text("Makespan: %d (LB: %d)", m_lacamResults.makespan, m_lacamResults.makespanLowerBound);
+            ImGui::Text("Sum of Costs: %d (LB: %d)", m_lacamResults.solutionCost,
+                        m_lacamResults.socLowerBound);
+            ImGui::Text("Makespan: %d (LB: %d)", m_lacamResults.makespan,
+                        m_lacamResults.makespanLowerBound);
             ImGui::Text("Runtime: %.6f seconds", m_lacamResults.runtime);
             ImGui::Text("Number of Agents: %d", m_lacamResults.numAgents);
 
             if (!m_lacamResults.pathsFile.empty()) {
-                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Paths loaded for visualization");
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+                                   "✓ Paths loaded for visualization");
             }
         } else if (!m_lacamResults.errorMessage.empty()) {
             ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "✗ Error:");
@@ -604,65 +578,58 @@ void UIManager::renderGridSizeTab()
 {
     ImGui::Spacing();
     ImGui::Text("Grid type:");
-    
+
     bool square = m_env.m_square;
     bool hex = m_env.m_hexagon;
-    if (ImGui::RadioButton("Square", square))
-    {
-        if (!square)
-        {
+    if (ImGui::RadioButton("Square", square)) {
+        if (!square) {
             m_env.m_square = true;
             m_env.m_hexagon = false;
         }
     }
     ImGui::SameLine();
-    if (ImGui::RadioButton("Hexagonal", hex))
-    {
-        if (!hex)
-        {
+    if (ImGui::RadioButton("Hexagonal", hex)) {
+        if (!hex) {
             m_env.m_hexagon = true;
             m_env.m_square = false;
         }
     }
-    
+
     // Hex grid type selection
-    if (m_env.m_hexagon)
-    {
+    if (m_env.m_hexagon) {
         ImGui::Spacing();
         ImGui::Text("Hex grid layout:");
-        
+
         // Create radio buttons for the four hex grid types
         bool isOddR = (m_env.m_hex_grid_type == HexGridType::ODD_R);
         bool isEvenR = (m_env.m_hex_grid_type == HexGridType::EVEN_R);
         bool isOddQ = (m_env.m_hex_grid_type == HexGridType::ODD_Q);
         bool isEvenQ = (m_env.m_hex_grid_type == HexGridType::EVEN_Q);
-        
+
         if (ImGui::RadioButton("Odd-R (Pointy, odd rows shifted)", isOddR))
             m_env.m_hex_grid_type = HexGridType::ODD_R;
-            
+
         if (ImGui::RadioButton("Even-R (Pointy, even rows shifted)", isEvenR))
             m_env.m_hex_grid_type = HexGridType::EVEN_R;
-            
+
         if (ImGui::RadioButton("Odd-Q (Flat, odd cols shifted)", isOddQ))
             m_env.m_hex_grid_type = HexGridType::ODD_Q;
-            
+
         if (ImGui::RadioButton("Even-Q (Flat, even cols shifted)", isEvenQ))
             m_env.m_hex_grid_type = HexGridType::EVEN_Q;
     }
-    
+
     ImGui::Separator();
     ImGui::Text("Columns: %zu", m_env.m_cols);
-    if (ImGui::SliderInt("##ColsSlider", (int*)&m_env.m_cols, 1, 200))
-    {
+    if (ImGui::SliderInt("##ColsSlider", (int*)&m_env.m_cols, 1, 200)) {
         m_env.m_grid = Grid<int>(m_env.m_cols, m_env.m_rows, 0);
     }
-    
+
     ImGui::Text("Rows: %zu", m_env.m_rows);
-    if (ImGui::SliderInt("##RowsSlider", (int*)&m_env.m_rows, 1, 200))
-    {
+    if (ImGui::SliderInt("##RowsSlider", (int*)&m_env.m_rows, 1, 200)) {
         m_env.m_grid = Grid<int>(m_env.m_cols, m_env.m_rows, 0);
     }
-    
+
     ImGui::Separator();
     ImGui::Text("Square Tile Size: %.2f", m_env.m_square_tile_size);
     ImGui::Text("Hex Tile Size: %.2f", m_env.m_hex_tile_size);
@@ -673,58 +640,53 @@ void UIManager::renderGridSizeTab()
 void UIManager::renderPathsTab()
 {
     ImGui::Spacing();
-    if (ImGui::Button("Load Paths"))
-    {
+    if (ImGui::Button("Load Paths")) {
         m_pathsFileDialog.Open();
     }
     m_pathsFileDialog.Display();
-    
-    if (ImGui::Button("Remove Paths"))
-    {
+
+    if (ImGui::Button("Remove Paths")) {
         m_pathManager.clear();
         m_animController.reset();
     }
-    
+
     ImGui::Separator();
     ImGui::Checkbox("LACAM Format", &m_lacamFormat);
 }
 
 void UIManager::renderAnimationControls()
 {
-    if (ImGui::Button("Start Visualization"))
-    {
+    if (ImGui::Button("Start Visualization")) {
         m_animController.start(m_pathManager.getPaths());
     }
-    
+
     ImGui::Separator();
     ImGui::Text("Animation");
-    
+
     float speed = m_animController.getAnimationSpeed();
-    if (ImGui::SliderFloat("Speed", &speed, 0.1f, 5.0f, "%.1fx"))
-    {
+    if (ImGui::SliderFloat("Speed", &speed, 0.1f, 5.0f, "%.1fx")) {
         m_animController.setAnimationSpeed(speed);
     }
-    
+
     // Get the current and maximum time steps
     int currentStep = static_cast<int>(m_animController.getCurrentTimeStep());
     int maxStep = static_cast<int>(m_animController.getMaxTimeStep());
-    
+
     // If paths are loaded but controller not initialized, initialize it
     if (maxStep == 0 && !m_pathManager.getPaths().empty()) {
         m_animController.start(m_pathManager.getPaths());
         m_animController.setAnimating(false);
         maxStep = static_cast<int>(m_animController.getMaxTimeStep());
     }
-    
+
     // Create a timeline with actual timesteps
     ImGui::Text("Timeline (Step): %d/%d", currentStep, maxStep);
-    
+
     // Display the slider with step numbers
-    if (ImGui::SliderInt("##timeline", &currentStep, 0, maxStep > 0 ? maxStep : 1))
-    {
+    if (ImGui::SliderInt("##timeline", &currentStep, 0, maxStep > 0 ? maxStep : 1)) {
         // Update the controller with the new time step
         m_animController.setCurrentTimeStep(currentStep);
-        
+
         // Update path indices based on time step
         const auto& paths = m_pathManager.getPaths();
 
@@ -734,9 +696,9 @@ void UIManager::renderAnimationControls()
         }
 
         // Update each agent's position based on the current time step
-        for (size_t i = 0; i < paths.size(); ++i)
-        {
-            if (paths[i].empty()) continue;
+        for (size_t i = 0; i < paths.size(); ++i) {
+            if (paths[i].empty())
+                continue;
 
             // If current time step is beyond this agent's path length,
             // keep the agent at its final position
@@ -748,110 +710,87 @@ void UIManager::renderAnimationControls()
                 m_animController.setPathIndex(i, static_cast<size_t>(currentStep));
             }
         }
-        
+
         m_animController.setAnimating(false);
     }
-    
+
     bool showPaths = m_animController.showPaths();
-    if (ImGui::Checkbox("Show Agent Paths", &showPaths))
-    {
+    if (ImGui::Checkbox("Show Agent Paths", &showPaths)) {
         m_animController.setShowPaths(showPaths);
     }
-    
-    if (ImGui::Button("Reset Animation"))
-    {
+
+    if (ImGui::Button("Reset Animation")) {
         m_animController.reset();
     }
 }
 
 void UIManager::handleFileDialogs()
 {
-    if (m_fileDialog.HasSelected())
-    {
-        try
-        {
+    if (m_fileDialog.HasSelected()) {
+        try {
             auto path = m_fileDialog.GetSelected().string();
             m_env.loadMap(path);
             m_recentFiles.push_back(path);
             m_currentMapPath = path;
             // Clean up temporary files when loading new map
             cleanupTempFiles();
-            
+
             // Extract map name from path for scenario saving
             size_t lastSlash = path.find_last_of("/\\");
             size_t lastDot = path.find_last_of(".");
-            if (lastSlash != std::string::npos && lastDot != std::string::npos && lastDot > lastSlash)
-            {
+            if (lastSlash != std::string::npos && lastDot != std::string::npos &&
+                lastDot > lastSlash) {
                 m_currentMapName = path.substr(lastSlash + 1, lastDot - lastSlash - 1);
-            }
-            else if (lastDot != std::string::npos)
-            {
+            } else if (lastDot != std::string::npos) {
                 m_currentMapName = path.substr(0, lastDot);
-            }
-            else
-            {
+            } else {
                 m_currentMapName = path;
             }
-        }
-        catch (const std::exception& e)
-        {
+        } catch (const std::exception& e) {
             std::cerr << "Error loading map: " << e.what() << std::endl;
         }
         m_fileDialog.ClearSelected();
     }
-    
-    if (m_pathsFileDialog.HasSelected())
-    {
-        try
-        {
+
+    if (m_pathsFileDialog.HasSelected()) {
+        try {
             auto path = m_pathsFileDialog.GetSelected().string();
             m_pathManager.loadPaths(path, m_lacamFormat);
             m_currentPathFile = path;
-            
+
             // Initialize the animation controller with the loaded paths
             // This ensures the max time step is calculated before visualization starts
             m_animController.start(m_pathManager.getPaths());
             m_animController.setAnimating(false); // Don't start animation yet
-        }
-        catch (const std::exception& e)
-        {
+        } catch (const std::exception& e) {
             std::cerr << "Error loading paths: " << e.what() << std::endl;
         }
         m_pathsFileDialog.ClearSelected();
     }
 
-    if (m_scenFileDialog.HasSelected())
-    {
+    if (m_scenFileDialog.HasSelected()) {
         auto path = m_scenFileDialog.GetSelected().string();
-        try
-        {
+        try {
             m_pendingScen = MapFormat::loadScenFile(path);
             m_pendingScenPath = path;
-            if (m_pendingScen.entries.empty())
-            {
+            if (m_pendingScen.entries.empty()) {
                 m_scenLoadStatus = "No usable entries in " + path;
-            }
-            else
-            {
-                m_scenAgentCount = static_cast<int>(
-                    std::min<std::size_t>(10, m_pendingScen.entries.size()));
+            } else {
+                m_scenAgentCount =
+                    static_cast<int>(std::min<std::size_t>(10, m_pendingScen.entries.size()));
                 m_scenLoadStatus.clear();
                 m_showScenLoadDialog = true;
             }
-        }
-        catch (const std::exception& e)
-        {
+        } catch (const std::exception& e) {
             m_scenLoadStatus = std::string("Error loading scenario: ") + e.what();
         }
         m_scenFileDialog.ClearSelected();
     }
 
     m_solverExeDialog.Display();
-    if (m_solverExeDialog.HasSelected())
-    {
+    if (m_solverExeDialog.HasSelected()) {
         auto& entries = m_solvers.entries();
-        if (m_solverExeTarget >= 0 && m_solverExeTarget < static_cast<int>(entries.size()))
-        {
+        if (m_solverExeTarget >= 0 && m_solverExeTarget < static_cast<int>(entries.size())) {
             entries[m_solverExeTarget].executable = m_solverExeDialog.GetSelected().string();
         }
         m_solverExeTarget = -1;
@@ -859,7 +798,8 @@ void UIManager::handleFileDialogs()
     }
 }
 
-void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& origin, float zoom, bool isHovered, bool isLeftClicked)
+void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& origin, float zoom,
+                                       bool isHovered, bool isLeftClicked)
 {
     if (!isHovered || !isLeftClicked || !m_addRemoveAgents)
         return;
@@ -869,8 +809,7 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
 
     size_t col = 0, row = 0;
 
-    if (m_env.m_square)
-    {
+    if (m_env.m_square) {
         float mouseX = (mousePos.x - origin.x + (scaledTile * 0.5f)) / scaledTile;
         float mouseY = (mousePos.y - origin.y + (scaledTile * 0.5f)) / scaledTile;
         // Clicks left of / above the grid produce negative values; casting
@@ -879,13 +818,9 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
             return;
         col = static_cast<size_t>(mouseX);
         row = static_cast<size_t>(mouseY);
-    }
-    else
-    {
+    } else {
         // Convert ImGui mouse to grid-space in pixels (before hex conversion)
-        ImVec2 worldMousePos = {
-            (mousePos.x - origin.x) / zoom,
-            (mousePos.y - origin.y) / zoom};
+        ImVec2 worldMousePos = {(mousePos.x - origin.x) / zoom, (mousePos.y - origin.y) / zoom};
 
         Coord hexCoord = GridRenderer::pixelToHex(worldMousePos, tileSize, m_env.m_hex_grid_type);
         if (CoordUtils::x(hexCoord) < 0 || CoordUtils::y(hexCoord) < 0)
@@ -898,28 +833,24 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
         return;
 
     Coord clickedPos = CoordUtils::make_coord(col, row);
-    
+
     // Check if there's blocked terrain at this position
     if (MapFormat::isBlocked(m_env.m_grid.get(col, row)))
         return; // Can't place agent on blocked cell
 
     // Check if we're clicking on an existing agent
-    for (size_t i = 0; i < m_dynamicAgents.size(); ++i)
-    {
+    for (size_t i = 0; i < m_dynamicAgents.size(); ++i) {
         Agent& agent = m_dynamicAgents[i];
-        
+
         // Check if clicking on agent's start position
-        if (CoordUtils::x(agent.start) == static_cast<int>(col) && CoordUtils::y(agent.start) == static_cast<int>(row))
-        {
+        if (CoordUtils::x(agent.start) == static_cast<int>(col) &&
+            CoordUtils::y(agent.start) == static_cast<int>(row)) {
             // Remove this agent
             m_dynamicAgents.erase(m_dynamicAgents.begin() + i);
             // Reset pending agent if it was this one
-            if (m_pendingAgentIndex == i)
-            {
+            if (m_pendingAgentIndex == i) {
                 m_pendingAgentIndex = SIZE_MAX;
-            }
-            else if (m_pendingAgentIndex > i)
-            {
+            } else if (m_pendingAgentIndex > i) {
                 m_pendingAgentIndex--;
             }
             // Reassign IDs to maintain ID = array index consistency
@@ -929,10 +860,10 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
             m_animController.reset();
             return;
         }
-        
+
         // Check if clicking on agent's goal position
-        if (agent.hasGoal && CoordUtils::x(agent.goal) == static_cast<int>(col) && CoordUtils::y(agent.goal) == static_cast<int>(row))
-        {
+        if (agent.hasGoal && CoordUtils::x(agent.goal) == static_cast<int>(col) &&
+            CoordUtils::y(agent.goal) == static_cast<int>(row)) {
             // Remove goal, make this agent pending again
             agent.hasGoal = false;
             agent.goal = CoordUtils::make_coord(-1, -1);
@@ -942,13 +873,12 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
     }
 
     // If we have a pending agent (waiting for goal), set its goal
-    if (m_pendingAgentIndex != SIZE_MAX && m_pendingAgentIndex < m_dynamicAgents.size())
-    {
+    if (m_pendingAgentIndex != SIZE_MAX && m_pendingAgentIndex < m_dynamicAgents.size()) {
         Agent& agent = m_dynamicAgents[m_pendingAgentIndex];
-        
+
         // Check if clicking on the same position as start
-        if (CoordUtils::x(agent.start) == static_cast<int>(col) && CoordUtils::y(agent.start) == static_cast<int>(row))
-        {
+        if (CoordUtils::x(agent.start) == static_cast<int>(col) &&
+            CoordUtils::y(agent.start) == static_cast<int>(row)) {
             // Remove this agent (clicking on same cell)
             m_dynamicAgents.erase(m_dynamicAgents.begin() + m_pendingAgentIndex);
             m_pendingAgentIndex = SIZE_MAX;
@@ -959,14 +889,12 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
             m_animController.reset();
             return;
         }
-        
+
         // Set goal for pending agent
         agent.goal = clickedPos;
         agent.hasGoal = true;
         m_pendingAgentIndex = SIZE_MAX;
-    }
-    else
-    {
+    } else {
         // Create new agent at clicked position
         // ID will be set by array position to maintain consistency
         size_t newId = m_dynamicAgents.size();
@@ -978,65 +906,54 @@ void UIManager::handleAgentInteraction(const ImVec2& mousePos, const ImVec2& ori
 
 void UIManager::renderDynamicAgents(ImDrawList* draw_list, const ImVec2& origin, float zoom)
 {
-    for (size_t i = 0; i < m_dynamicAgents.size(); ++i)
-    {
+    for (size_t i = 0; i < m_dynamicAgents.size(); ++i) {
         const Agent& agent = m_dynamicAgents[i];
-        
+
         // Render agent start position
         renderAgentAtPosition(draw_list, agent.start, agent.id, origin, zoom, false);
-        
+
         // Render goal position if it exists
-        if (agent.hasGoal)
-        {
+        if (agent.hasGoal) {
             renderAgentAtPosition(draw_list, agent.goal, agent.id, origin, zoom, true);
         }
     }
 }
 
-void UIManager::renderAgentAtPosition(ImDrawList* draw_list, const Coord& pos, size_t agentId, 
-                                     const ImVec2& origin, float zoom, bool isGoal)
+void UIManager::renderAgentAtPosition(ImDrawList* draw_list, const Coord& pos, size_t agentId,
+                                      const ImVec2& origin, float zoom, bool isGoal)
 {
-    ImVec2 worldPos = GridRenderer::gridToWorld(CoordUtils::x(pos), CoordUtils::y(pos), m_env.m_hexagon,
-                                               m_env.m_hexagon ? m_env.m_hex_tile_size : m_env.m_square_tile_size,
-                                               origin, zoom, m_env.m_hex_grid_type);
-    
+    ImVec2 worldPos = GridRenderer::gridToWorld(
+        CoordUtils::x(pos), CoordUtils::y(pos), m_env.m_hexagon,
+        m_env.m_hexagon ? m_env.m_hex_tile_size : m_env.m_square_tile_size, origin, zoom,
+        m_env.m_hex_grid_type);
+
     float agentSize = (m_env.m_hexagon ? m_env.m_hex_agent_size : m_env.m_square_agent_size) * zoom;
     ImU32 color = getColorForAgent(agentId);
-    
-    if (isGoal)
-    {
+
+    if (isGoal) {
         // Draw goal as unfilled square
         float markerSize = agentSize * 0.7f;
         ImVec2 halfSize(markerSize, markerSize);
-        draw_list->AddRect(
-            ImVec2(worldPos.x - halfSize.x, worldPos.y - halfSize.y),
-            ImVec2(worldPos.x + halfSize.x, worldPos.y + halfSize.y),
-            color,
-            0.0f,
-            0,
-            2.0f * zoom
-        );
-    }
-    else
-    {
+        draw_list->AddRect(ImVec2(worldPos.x - halfSize.x, worldPos.y - halfSize.y),
+                           ImVec2(worldPos.x + halfSize.x, worldPos.y + halfSize.y), color, 0.0f, 0,
+                           2.0f * zoom);
+    } else {
         // Draw agent as filled circle
         draw_list->AddCircleFilled(worldPos, agentSize, color);
     }
-    
+
     // Draw agent ID text
     char buf[16];
     snprintf(buf, sizeof(buf), "%zu", agentId);
-    
+
     float text_scale = agentSize * 0.06f;
     ImGui::GetFont()->Scale = text_scale;
     ImGui::PushFont(ImGui::GetFont());
-    
+
     ImVec2 text_size = ImGui::CalcTextSize(buf);
-    draw_list->AddText(
-        ImVec2(worldPos.x - text_size.x * 0.5f, worldPos.y - text_size.y * 0.5f),
-        IM_COL32(255, 255, 255, 255), buf
-    );
-    
+    draw_list->AddText(ImVec2(worldPos.x - text_size.x * 0.5f, worldPos.y - text_size.y * 0.5f),
+                       IM_COL32(255, 255, 255, 255), buf);
+
     ImGui::GetFont()->Scale = 1.0f;
     ImGui::PopFont();
 }
@@ -1044,34 +961,30 @@ void UIManager::renderAgentAtPosition(ImDrawList* draw_list, const Coord& pos, s
 void UIManager::renderMapNameDialog()
 {
     ImGui::OpenPopup("Map Name Required");
-    
-    if (ImGui::BeginPopupModal("Map Name Required", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-    {
+
+    if (ImGui::BeginPopupModal("Map Name Required", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Please enter a name for the map:");
         ImGui::Separator();
-        
+
         ImGui::InputText("Map Name", m_mapNameBuffer, sizeof(m_mapNameBuffer));
-        
+
         ImGui::Separator();
-        
-        if (ImGui::Button("OK", ImVec2(120, 0)))
-        {
-            if (strlen(m_mapNameBuffer) > 0)
-            {
+
+        if (ImGui::Button("OK", ImVec2(120, 0))) {
+            if (strlen(m_mapNameBuffer) > 0) {
                 m_currentMapName = std::string(m_mapNameBuffer);
                 m_showMapNameDialog = false;
                 m_showSaveScenarioDialog = true;
                 ImGui::CloseCurrentPopup();
             }
         }
-        
+
         ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 0)))
-        {
+        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
             m_showMapNameDialog = false;
             ImGui::CloseCurrentPopup();
         }
-        
+
         ImGui::EndPopup();
     }
 }
@@ -1079,63 +992,59 @@ void UIManager::renderMapNameDialog()
 void UIManager::renderSaveScenarioDialog()
 {
     ImGui::OpenPopup("Save Scenario");
-    
-    if (ImGui::BeginPopupModal("Save Scenario", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-    {
+
+    if (ImGui::BeginPopupModal("Save Scenario", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Save scenario files for map: %s", m_currentMapName.c_str());
         ImGui::Text("Agents: %zu", m_dynamicAgents.size());
-        
+
         size_t agentsWithGoals = 0;
-        for (const auto& agent : m_dynamicAgents)
-        {
-            if (agent.hasGoal) agentsWithGoals++;
+        for (const auto& agent : m_dynamicAgents) {
+            if (agent.hasGoal)
+                agentsWithGoals++;
         }
         ImGui::Text("Agents with goals: %zu", agentsWithGoals);
-        
+
         ImGui::Separator();
-        
+
         // Option for temporary vs permanent files
         ImGui::Checkbox("Use temporary files (auto-cleanup)", &m_useTemporaryFiles);
         ImGui::Text("Temporary files are cleaned up automatically when:");
         ImGui::BulletText("Program exits");
         ImGui::BulletText("Clear Agents is pressed");
         ImGui::BulletText("New map is loaded");
-        
+
         ImGui::Separator();
-        
-        if (ImGui::Button("Save Map + Scenario", ImVec2(200, 0)))
-        {
-            try
-            {
+
+        if (ImGui::Button("Save Map + Scenario", ImVec2(200, 0))) {
+            try {
                 std::string mapFile, scenFile;
-                
-                if (m_useTemporaryFiles)
-                {
+
+                if (m_useTemporaryFiles) {
                     // Use temporary files in temp directory
                     std::string tempDir = getTempDirectory();
                     auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        std::chrono::steady_clock::now().time_since_epoch()).count();
-                    std::string prefix = tempDir + "/" + m_currentMapName + "_" + std::to_string(timestamp);
-                    
+                                         std::chrono::steady_clock::now().time_since_epoch())
+                                         .count();
+                    std::string prefix =
+                        tempDir + "/" + m_currentMapName + "_" + std::to_string(timestamp);
+
                     mapFile = prefix + ".map";
                     scenFile = prefix + ".scen";
-                    
+
                     // Track temp files for cleanup
                     addTempFile(mapFile);
                     addTempFile(scenFile);
-                }
-                else
-                {
+                } else {
                     // Use permanent files in current directory
                     mapFile = m_currentMapName + ".map";
                     scenFile = m_currentMapName + ".scen";
                 }
-                
+
                 saveMapFile(mapFile);
                 saveScenarioFile(scenFile);
                 m_showSaveScenarioDialog = false;
                 ImGui::CloseCurrentPopup();
-                
+
                 // If CBS was requested, start it now
                 if (m_startCBSAfterSave) {
                     m_startCBSAfterSave = false;
@@ -1148,20 +1057,17 @@ void UIManager::renderSaveScenarioDialog()
                     // Call startLacamSolver recursively, but now m_currentMapName is set
                     startLacamSolver();
                 }
-            }
-            catch (const std::exception& e)
-            {
+            } catch (const std::exception& e) {
                 std::cerr << "Error saving files: " << e.what() << std::endl;
             }
         }
-        
+
         ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 0)))
-        {
+        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
             m_showSaveScenarioDialog = false;
             ImGui::CloseCurrentPopup();
         }
-        
+
         ImGui::EndPopup();
     }
 }
@@ -1169,11 +1075,10 @@ void UIManager::renderSaveScenarioDialog()
 void UIManager::saveMapFile(const std::string& filename)
 {
     std::ofstream file(filename);
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         throw std::runtime_error("Cannot open file for writing: " + filename);
     }
-    
+
     MapFormat::writeMap(file, m_env.m_grid, m_env.m_cols, m_env.m_rows);
     file.close();
     std::cout << "Map saved to: " << filename << std::endl;
@@ -1182,11 +1087,10 @@ void UIManager::saveMapFile(const std::string& filename)
 void UIManager::saveScenarioFile(const std::string& filename)
 {
     std::ofstream file(filename);
-    if (!file.is_open())
-    {
+    if (!file.is_open()) {
         throw std::runtime_error("Cannot open file for writing: " + filename);
     }
-    
+
     // Extract just the map filename (without path)
     std::string mapFilename = m_currentMapName + ".map";
     MapFormat::writeScen(file, m_dynamicAgents, mapFilename, m_env.m_cols, m_env.m_rows);
@@ -1197,40 +1101,34 @@ void UIManager::saveScenarioFile(const std::string& filename)
 void UIManager::reassignAgentIDs()
 {
     // Reassign agent IDs to be consecutive starting from 0
-    for (size_t i = 0; i < m_dynamicAgents.size(); ++i)
-    {
+    for (size_t i = 0; i < m_dynamicAgents.size(); ++i) {
         m_dynamicAgents[i].id = i;
     }
-    
+
     // Update m_nextAgentId to be the next available ID
     m_nextAgentId = m_dynamicAgents.size();
 }
-
 
 void UIManager::renderScenLoadDialog()
 {
     ImGui::OpenPopup("Load Scenario");
 
-    if (ImGui::BeginPopupModal("Load Scenario", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-    {
+    if (ImGui::BeginPopupModal("Load Scenario", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         const auto& first = m_pendingScen.entries.front();
         std::string fileName = m_pendingScenPath;
         size_t lastSlash = fileName.find_last_of("/\\");
-        if (lastSlash != std::string::npos)
-        {
+        if (lastSlash != std::string::npos) {
             fileName = fileName.substr(lastSlash + 1);
         }
 
         ImGui::Text("Scenario: %s", fileName.c_str());
         ImGui::Text("Entries: %zu   For map: %s (%zux%zu)", m_pendingScen.entries.size(),
                     first.mapName.c_str(), first.mapWidth, first.mapHeight);
-        if (m_pendingScen.malformedLines > 0)
-        {
+        if (m_pendingScen.malformedLines > 0) {
             ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.2f, 1.0f), "%zu malformed lines skipped",
                                m_pendingScen.malformedLines);
         }
-        if (first.mapWidth != m_env.m_cols || first.mapHeight != m_env.m_rows)
-        {
+        if (first.mapWidth != m_env.m_cols || first.mapHeight != m_env.m_rows) {
             ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.2f, 1.0f),
                                "Warning: scenario is for a %zux%zu map, current grid is %zux%zu.\n"
                                "Load the matching map first; out-of-range agents will be skipped.",
@@ -1241,11 +1139,10 @@ void UIManager::renderScenLoadDialog()
         int maxAgents = static_cast<int>(m_pendingScen.entries.size());
         ImGui::SliderInt("Agents (first k entries)", &m_scenAgentCount, 1, maxAgents);
 
-        if (ImGui::Button("Load", ImVec2(120, 0)))
-        {
-            auto sel = MapFormat::selectAgents(m_pendingScen.entries, m_env.m_grid, m_env.m_cols,
-                                               m_env.m_rows,
-                                               static_cast<std::size_t>(m_scenAgentCount));
+        if (ImGui::Button("Load", ImVec2(120, 0))) {
+            auto sel =
+                MapFormat::selectAgents(m_pendingScen.entries, m_env.m_grid, m_env.m_cols,
+                                        m_env.m_rows, static_cast<std::size_t>(m_scenAgentCount));
 
             m_dynamicAgents = sel.agents;
             reassignAgentIDs();
@@ -1262,8 +1159,7 @@ void UIManager::renderScenLoadDialog()
             status << "Loaded " << sel.agents.size() << " agents from " << fileName;
             std::size_t skipped =
                 sel.skippedOutOfBounds + sel.skippedBlocked + sel.skippedDuplicate;
-            if (skipped > 0)
-            {
+            if (skipped > 0) {
                 status << " (skipped " << sel.skippedOutOfBounds << " out-of-bounds, "
                        << sel.skippedBlocked << " blocked, " << sel.skippedDuplicate
                        << " duplicate)";
@@ -1274,8 +1170,7 @@ void UIManager::renderScenLoadDialog()
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 0)))
-        {
+        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
             m_showScenLoadDialog = false;
             ImGui::CloseCurrentPopup();
         }
@@ -1287,36 +1182,29 @@ void UIManager::renderScenLoadDialog()
 void UIManager::renderExperimentsTab()
 {
     ImGui::Spacing();
-    ImGui::TextWrapped(
-        "Batch experiments (spec grammar: docs/experiments.md). The headless "
-        "CLI 'openmapf run <spec.yaml>' is the primary interface; this panel "
-        "is a thin front-end over the same runner.");
+    ImGui::TextWrapped("Batch experiments (spec grammar: docs/experiments.md). The headless "
+                       "CLI 'openmapf run <spec.yaml>' is the primary interface; this panel "
+                       "is a thin front-end over the same runner.");
     ImGui::Separator();
 
-    if (ImGui::Button("Load spec..."))
-    {
+    if (ImGui::Button("Load spec...")) {
         m_experimentFileDialog.Open();
     }
     m_experimentFileDialog.Display();
-    if (m_experimentFileDialog.HasSelected())
-    {
+    if (m_experimentFileDialog.HasSelected()) {
         const std::string path = m_experimentFileDialog.GetSelected().string();
-        try
-        {
+        try {
             m_experimentSpec = ExperimentSpec::loadFromFile(path);
             m_experimentStatus.clear();
             m_experimentExitCode = -1;
-        }
-        catch (const std::exception& e)
-        {
+        } catch (const std::exception& e) {
             m_experimentSpec.reset();
             m_experimentStatus = e.what();
         }
         m_experimentFileDialog.ClearSelected();
     }
 
-    if (m_experimentSpec)
-    {
+    if (m_experimentSpec) {
         const auto& spec = *m_experimentSpec;
         ImGui::Text("Experiment: %s", spec.name.c_str());
         ImGui::Text("Matrix: %zu runs   (time limit %ds)", expandMatrix(spec).size(),
@@ -1325,31 +1213,24 @@ void UIManager::renderExperimentsTab()
         ImGui::Checkbox("Resume (skip completed runs)", &m_experimentResume);
 
         const bool running = m_experimentRunning.load();
-        if (!running && ImGui::Button("Start"))
-        {
-            if (m_experimentThread.joinable())
-            {
+        if (!running && ImGui::Button("Start")) {
+            if (m_experimentThread.joinable()) {
                 m_experimentThread.join(); // reap a previously finished run
             }
             RunnerOptions opts;
             opts.resume = m_experimentResume;
             opts.toolVersion = OPENMAPF_VERSION;
-            m_experimentRunner =
-                std::make_unique<ExperimentRunner>(spec, m_solvers, opts);
+            m_experimentRunner = std::make_unique<ExperimentRunner>(spec, m_solvers, opts);
 
             auto errors = m_experimentRunner->validate();
-            if (!errors.empty())
-            {
+            if (!errors.empty()) {
                 std::string joined;
-                for (const auto& e : errors)
-                {
+                for (const auto& e : errors) {
                     joined += e + "\n";
                 }
                 m_experimentStatus = joined;
                 m_experimentRunner.reset();
-            }
-            else
-            {
+            } else {
                 {
                     std::lock_guard<std::mutex> lock(m_experimentProgressMutex);
                     m_experimentProgress = RunnerProgress{};
@@ -1369,15 +1250,12 @@ void UIManager::renderExperimentsTab()
                 });
             }
         }
-        if (running)
-        {
+        if (running) {
             ImGui::SameLine();
-            if (ImGui::Button("Stop"))
-            {
+            if (ImGui::Button("Stop")) {
                 m_experimentRunner->requestStop();
             }
-            if (ImGui::IsItemHovered())
-            {
+            if (ImGui::IsItemHovered()) {
                 ImGui::SetTooltip("Stops picking new runs; in-flight runs finish first.");
             }
         }
@@ -1387,24 +1265,20 @@ void UIManager::renderExperimentsTab()
             std::lock_guard<std::mutex> lock(m_experimentProgressMutex);
             progress = m_experimentProgress;
         }
-        if (running || m_experimentExitCode >= 0)
-        {
-            const float fraction =
-                progress.total > 0
-                    ? static_cast<float>(progress.completed) / static_cast<float>(progress.total)
-                    : 1.0f;
+        if (running || m_experimentExitCode >= 0) {
+            const float fraction = progress.total > 0 ? static_cast<float>(progress.completed) /
+                                                            static_cast<float>(progress.total)
+                                                      : 1.0f;
             char overlay[64];
             std::snprintf(overlay, sizeof(overlay), "%zu / %zu", progress.completed,
                           progress.total);
             ImGui::ProgressBar(fraction, ImVec2(-1, 0), overlay);
-            if (!progress.lastKey.empty())
-            {
+            if (!progress.lastKey.empty()) {
                 ImGui::TextWrapped("last: %s -> %s", progress.lastKey.c_str(),
                                    progress.lastStatus.c_str());
             }
         }
-        if (!running && m_experimentExitCode >= 0 && m_experimentRunner)
-        {
+        if (!running && m_experimentExitCode >= 0 && m_experimentRunner) {
             ImGui::Text("Finished (exit code %d).", m_experimentExitCode);
             ImGui::TextWrapped("Results: %s", m_experimentRunner->resultsCsvPath().c_str());
             ImGui::TextWrapped("Plots: scripts/openmapf-plot %s",
@@ -1412,8 +1286,7 @@ void UIManager::renderExperimentsTab()
         }
     }
 
-    if (!m_experimentStatus.empty())
-    {
+    if (!m_experimentStatus.empty()) {
         ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s", m_experimentStatus.c_str());
     }
 }
@@ -1421,15 +1294,13 @@ void UIManager::renderExperimentsTab()
 void UIManager::renderSolversTab()
 {
     ImGui::Spacing();
-    ImGui::TextWrapped(
-        "External solver executables. Configure a path per solver here or in "
-        "solvers.yaml (run 'openmapf --help' for the search locations). "
-        "Solvers without a valid executable are reported as unavailable when run.");
+    ImGui::TextWrapped("External solver executables. Configure a path per solver here or in "
+                       "solvers.yaml (run 'openmapf --help' for the search locations). "
+                       "Solvers without a valid executable are reported as unavailable when run.");
     ImGui::Separator();
 
     auto& entries = m_solvers.entries();
-    for (int i = 0; i < static_cast<int>(entries.size()); ++i)
-    {
+    for (int i = 0; i < static_cast<int>(entries.size()); ++i) {
         SolverEntry& entry = entries[i];
         ImGui::PushID(i);
 
@@ -1450,23 +1321,20 @@ void UIManager::renderSolversTab()
         char buf[1024];
         std::snprintf(buf, sizeof(buf), "%s", entry.executable.c_str());
         ImGui::SetNextItemWidth(-90.0f);
-        if (ImGui::InputText("##exe", buf, sizeof(buf)))
-        {
+        if (ImGui::InputText("##exe", buf, sizeof(buf))) {
             entry.executable = buf;
         }
         ImGui::SameLine();
-        if (ImGui::Button("Browse..."))
-        {
+        if (ImGui::Button("Browse...")) {
             m_solverExeTarget = i;
             m_solverExeDialog.Open();
         }
 
-        if (!entry.grids.empty())
-        {
+        if (!entry.grids.empty()) {
             std::string grids;
-            for (const auto& g : entry.grids)
-            {
-                if (!grids.empty()) grids += ", ";
+            for (const auto& g : entry.grids) {
+                if (!grids.empty())
+                    grids += ", ";
                 grids += g;
             }
             ImGui::TextDisabled("grids: %s", grids.c_str());
@@ -1476,24 +1344,18 @@ void UIManager::renderSolversTab()
         ImGui::PopID();
     }
 
-    if (ImGui::Button("Save solver paths"))
-    {
+    if (ImGui::Button("Save solver paths")) {
         std::string dir = ConfigLocator::userConfigDir(ConfigLocator::systemInputs("", nullptr));
-        if (dir.empty())
-        {
+        if (dir.empty()) {
             m_solverSaveStatus = "Cannot determine the user config directory "
                                  "($XDG_CONFIG_HOME/$HOME unset).";
-        }
-        else
-        {
+        } else {
             std::string path = dir + "/solvers.yaml";
-            m_solverSaveStatus = m_solvers.saveToFile(path)
-                                     ? "Saved to " + path
-                                     : "Failed to save " + path;
+            m_solverSaveStatus =
+                m_solvers.saveToFile(path) ? "Saved to " + path : "Failed to save " + path;
         }
     }
-    if (!m_solverSaveStatus.empty())
-    {
+    if (!m_solverSaveStatus.empty()) {
         ImGui::TextWrapped("%s", m_solverSaveStatus.c_str());
     }
 }
@@ -1508,7 +1370,7 @@ void UIManager::renderResultsTab()
         ImGui::Text("Runtime: %.3f seconds", m_cbsResults.runtime);
         ImGui::Text("High Level Nodes: %d", m_cbsResults.highLevelNodes);
         ImGui::Text("Low Level Nodes: %d", m_cbsResults.lowLevelNodes);
-        
+
         if (!m_cbsResults.pathsFile.empty()) {
             ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Paths loaded for visualization");
         }
@@ -1521,41 +1383,44 @@ void UIManager::renderResultsTab()
     }
 
     // --- Results CSV export (stable schema, docs/file-formats.md) ---
-    const bool haveCbsRun = m_selectedAlgo == 0 &&
-                            (m_cbsResults.solutionFound || !m_cbsResults.errorMessage.empty());
+    const bool haveCbsRun =
+        m_selectedAlgo == 0 && (m_cbsResults.solutionFound || !m_cbsResults.errorMessage.empty());
     const bool haveLacamRun = m_selectedAlgo != 0 && (m_lacamResults.solutionFound ||
                                                       !m_lacamResults.errorMessage.empty());
-    if (haveCbsRun || haveLacamRun)
-    {
+    if (haveCbsRun || haveLacamRun) {
         ImGui::Separator();
         ImGui::Text("Export last run");
         ImGui::SetNextItemWidth(-90.0f);
         ImGui::InputText("##resultscsv", m_resultsCsvPathBuffer, sizeof(m_resultsCsvPathBuffer));
         ImGui::SameLine();
-        if (ImGui::Button("Append"))
-        {
+        if (ImGui::Button("Append")) {
             RunRecord rec;
             rec.solver = m_algoNames[m_selectedAlgo];
             rec.map = m_currentMapName;
             rec.scenario = m_currentScenarioName;
-            for (const auto& agent : m_dynamicAgents)
-            {
-                if (agent.hasGoal) rec.agents++;
+            for (const auto& agent : m_dynamicAgents) {
+                if (agent.hasGoal)
+                    rec.agents++;
             }
             rec.gridType = m_env.m_hexagon ? "hex" : "square";
-            if (m_env.m_hexagon)
-            {
-                switch (m_env.m_hex_grid_type)
-                {
-                    case HexGridType::ODD_R: rec.hexLayout = "oddr"; break;
-                    case HexGridType::EVEN_R: rec.hexLayout = "evenr"; break;
-                    case HexGridType::ODD_Q: rec.hexLayout = "oddq"; break;
-                    case HexGridType::EVEN_Q: rec.hexLayout = "evenq"; break;
+            if (m_env.m_hexagon) {
+                switch (m_env.m_hex_grid_type) {
+                case HexGridType::ODD_R:
+                    rec.hexLayout = "oddr";
+                    break;
+                case HexGridType::EVEN_R:
+                    rec.hexLayout = "evenr";
+                    break;
+                case HexGridType::ODD_Q:
+                    rec.hexLayout = "oddq";
+                    break;
+                case HexGridType::EVEN_Q:
+                    rec.hexLayout = "evenq";
+                    break;
                 }
             }
             rec.toolVersion = OPENMAPF_VERSION;
-            if (m_selectedAlgo == 0)
-            {
+            if (m_selectedAlgo == 0) {
                 rec.seed = m_cbsParams.seed;
                 rec.timeLimitS = m_cbsParams.cutoffTime;
                 rec.solved = m_cbsResults.solutionFound;
@@ -1563,9 +1428,7 @@ void UIManager::renderResultsTab()
                 rec.solutionCost = m_cbsResults.solutionCost;
                 rec.hlExpanded = m_cbsResults.highLevelNodes;
                 rec.llExpanded = m_cbsResults.lowLevelNodes;
-            }
-            else
-            {
+            } else {
                 rec.seed = m_lacamParams.seed;
                 rec.timeLimitS = m_lacamParams.timeLimit;
                 rec.solved = m_lacamResults.solutionFound;
@@ -1573,14 +1436,11 @@ void UIManager::renderResultsTab()
                 rec.solutionCost = m_lacamResults.solutionCost;
                 rec.makespan = m_lacamResults.makespan;
             }
-            if (m_selectedAlgo == 0)
-            {
+            if (m_selectedAlgo == 0) {
                 rec.status = m_cbsResults.solutionFound
                                  ? "solved"
                                  : (m_cbsResults.errorMessage.empty() ? "unsolved" : "error");
-            }
-            else
-            {
+            } else {
                 rec.status = m_lacamResults.solutionFound
                                  ? "solved"
                                  : (m_lacamResults.errorMessage.empty() ? "unsolved" : "error");
@@ -1589,8 +1449,7 @@ void UIManager::renderResultsTab()
                                         ? "Appended to " + std::string(m_resultsCsvPathBuffer)
                                         : "Failed to write " + std::string(m_resultsCsvPathBuffer);
         }
-        if (!m_resultsExportStatus.empty())
-        {
+        if (!m_resultsExportStatus.empty()) {
             ImGui::TextWrapped("%s", m_resultsExportStatus.c_str());
         }
     }
@@ -1602,37 +1461,45 @@ void UIManager::startCBSSolver()
     if (m_cbsRunning) {
         return;
     }
-    
+
     // Make sure any previous thread is cleaned up
     if (m_cbsDriver.isRunning()) {
         m_cbsDriver.cancel();
         // Wait a bit for thread to finish
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    
+
     if (m_currentMapName.empty()) {
-        m_startCBSAfterSave = true;  // Flag to start CBS after saving
+        m_startCBSAfterSave = true; // Flag to start CBS after saving
         m_showMapNameDialog = true;
         return;
     }
-    
+
     // Update CBS parameters from environment
     m_cbsParams.hexGrid = m_env.m_hexagon;
     if (m_env.m_hexagon) {
         switch (m_env.m_hex_grid_type) {
-            case HexGridType::ODD_R: m_cbsParams.gridConfig = "oddr"; break;
-            case HexGridType::EVEN_R: m_cbsParams.gridConfig = "evenr"; break;
-            case HexGridType::ODD_Q: m_cbsParams.gridConfig = "oddq"; break;
-            case HexGridType::EVEN_Q: m_cbsParams.gridConfig = "evenq"; break;
+        case HexGridType::ODD_R:
+            m_cbsParams.gridConfig = "oddr";
+            break;
+        case HexGridType::EVEN_R:
+            m_cbsParams.gridConfig = "evenr";
+            break;
+        case HexGridType::ODD_Q:
+            m_cbsParams.gridConfig = "oddq";
+            break;
+        case HexGridType::EVEN_Q:
+            m_cbsParams.gridConfig = "evenq";
+            break;
         }
     }
-    
+
     // CBS works directly with m_dynamicAgents
-    
+
     m_cbsRunning = true;
     m_cbsStartTime = std::chrono::steady_clock::now();
     m_cbsResults = CBSResults(); // Reset results
-    
+
     // Solver executable comes from the manifest (empty = not configured;
     // the driver reports a clear error instead of running)
     m_cbsDriver.setExecutablePath(m_solvers.executableFor("cbs"));
@@ -1641,15 +1508,13 @@ void UIManager::startCBSSolver()
     std::string tempDir = getTempDirectory();
     // The callback runs on the solver thread: only queue the results here.
     // They are applied on the GUI thread by processPendingResults().
-    m_cbsDriver.solveAsync(m_dynamicAgents, m_env, m_cbsParams, m_currentMapName,
-                          [this](const CBSResults& results) {
-                              std::lock_guard<std::mutex> lock(m_pendingResultsMutex);
-                              m_pendingCbsResults = results;
-                          },
-                          tempDir,
-                          [this](const std::string& filename) {
-                              this->addTempFile(filename);
-                          });
+    m_cbsDriver.solveAsync(
+        m_dynamicAgents, m_env, m_cbsParams, m_currentMapName,
+        [this](const CBSResults& results) {
+            std::lock_guard<std::mutex> lock(m_pendingResultsMutex);
+            m_pendingCbsResults = results;
+        },
+        tempDir, [this](const std::string& filename) { this->addTempFile(filename); });
 }
 
 void UIManager::processPendingResults()
@@ -1677,11 +1542,11 @@ void UIManager::onCBSComplete(const CBSResults& results)
     if (!m_cbsRunning) {
         return;
     }
-    
+
     m_cbsResults = results;
     m_cbsRunning = false;
     m_showProgressDialog = false;
-    
+
     // Auto-load paths immediately if solution found
     if (m_cbsResults.solutionFound && !m_cbsResults.pathsFile.empty()) {
         try {
@@ -1689,37 +1554,37 @@ void UIManager::onCBSComplete(const CBSResults& results)
             // loadPaths must always be applied -- never depend on the user's
             // "LaCAM format" checkbox here (docs/file-formats.md).
             m_pathManager.loadPaths(m_cbsResults.pathsFile, false);
-            
+
             // Initialize animation controller (same as existing mechanism)
             m_animController.start(m_pathManager.getPaths());
-            m_animController.setAnimating(true);  // Start animation automatically
+            m_animController.setAnimating(true); // Start animation automatically
 
             // Exit Add/Remove Agents mode to ensure clean visualization
             m_addRemoveAgents = false;
-            
+
             std::cout << "CBS paths loaded automatically for visualization" << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "Error auto-loading CBS paths: " << e.what() << std::endl;
         }
     }
-    
+
     // Don't show popup - results will be shown in Algorithm tab
     // m_showResultsPanel = true;
 }
 
 void UIManager::renderCBSParametersDialog()
 {
-    if (!m_showAlgoParams) return;
-    
+    if (!m_showAlgoParams)
+        return;
+
     ImGui::OpenPopup("CBS Parameters");
-    
-    if (ImGui::BeginPopupModal("CBS Parameters", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-    {
+
+    if (ImGui::BeginPopupModal("CBS Parameters", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("CBS Algorithm Parameters");
         ImGui::Separator();
-        
+
         ImGui::InputInt("Cutoff Time (seconds)", &m_cbsParams.cutoffTime);
-        
+
         // Heuristic selection
         const char* heuristics[] = {"Zero", "CG", "DG", "WDG"};
         int currentHeuristic = 0;
@@ -1732,7 +1597,7 @@ void UIManager::renderCBSParametersDialog()
         if (ImGui::Combo("Heuristic", &currentHeuristic, heuristics, 4)) {
             m_cbsParams.heuristic = heuristics[currentHeuristic];
         }
-        
+
         // Cluster heuristics
         const char* clusterHeuristics[] = {"N", "BP", "CH", "CHBPNS", "CHBPNM", "CHBPNRM", "CHBP"};
         int currentClusterHeuristic = 0;
@@ -1745,7 +1610,7 @@ void UIManager::renderCBSParametersDialog()
         if (ImGui::Combo("Cluster Heuristic", &currentClusterHeuristic, clusterHeuristics, 7)) {
             m_cbsParams.clusterHeuristic = clusterHeuristics[currentClusterHeuristic];
         }
-        
+
         // Rectangle reasoning
         const char* rectangleOptions[] = {"None", "R", "RM", "GR", "Disjoint"};
         int currentRectangle = 0;
@@ -1758,7 +1623,7 @@ void UIManager::renderCBSParametersDialog()
         if (ImGui::Combo("Rectangle Reasoning", &currentRectangle, rectangleOptions, 5)) {
             m_cbsParams.rectangleReasoning = rectangleOptions[currentRectangle];
         }
-        
+
         // Corridor reasoning
         const char* corridorOptions[] = {"None", "C", "PC", "STC", "GC", "Disjoint"};
         int currentCorridor = 0;
@@ -1771,13 +1636,13 @@ void UIManager::renderCBSParametersDialog()
         if (ImGui::Combo("Corridor Reasoning", &currentCorridor, corridorOptions, 6)) {
             m_cbsParams.corridorReasoning = corridorOptions[currentCorridor];
         }
-        
+
         ImGui::Checkbox("Bypass", &m_cbsParams.bypass);
         ImGui::Checkbox("Target Reasoning", &m_cbsParams.targetReasoning);
         ImGui::Checkbox("Mutex Reasoning", &m_cbsParams.mutexReasoning);
-        
+
         ImGui::Separator();
-        
+
         if (ImGui::Button("OK", ImVec2(120, 0))) {
             m_showAlgoParams = false;
             ImGui::CloseCurrentPopup();
@@ -1787,57 +1652,58 @@ void UIManager::renderCBSParametersDialog()
             m_showAlgoParams = false;
             ImGui::CloseCurrentPopup();
         }
-        
+
         ImGui::EndPopup();
     }
 }
 
 void UIManager::renderCBSProgressDialog()
 {
-    if (!m_showProgressDialog || !m_cbsRunning) return;
-    
+    if (!m_showProgressDialog || !m_cbsRunning)
+        return;
+
     ImGui::OpenPopup("CBS Solving");
-    
-    if (ImGui::BeginPopupModal("CBS Solving", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-    {
+
+    if (ImGui::BeginPopupModal("CBS Solving", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("CBS solver is running...");
-        
+
         // Calculate elapsed time
         auto now = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - m_cbsStartTime);
         ImGui::Text("Elapsed time: %ld seconds", elapsed.count());
-        
+
         // Spinner animation
         static float progress = 0.0f;
         progress += 0.01f;
-        if (progress >= 1.0f) progress = 0.0f;
-        
+        if (progress >= 1.0f)
+            progress = 0.0f;
+
         ImGui::ProgressBar(progress, ImVec2(0.0f, 0.0f));
-        
+
         if (ImGui::Button("Cancel")) {
             m_cbsDriver.cancel();
             m_cbsRunning = false;
             m_showProgressDialog = false;
             ImGui::CloseCurrentPopup();
         }
-        
+
         if (!m_cbsRunning) {
             m_showProgressDialog = false;
             ImGui::CloseCurrentPopup();
         }
-        
+
         ImGui::EndPopup();
     }
 }
 
 void UIManager::renderCBSResultsDialog()
 {
-    if (!m_showResultsPanel) return;
-    
+    if (!m_showResultsPanel)
+        return;
+
     ImGui::OpenPopup("CBS Results");
-    
-    if (ImGui::BeginPopupModal("CBS Results", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-    {
+
+    if (ImGui::BeginPopupModal("CBS Results", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
         if (m_cbsResults.solutionFound) {
             ImGui::Text("Solution Found!");
             ImGui::Separator();
@@ -1845,9 +1711,10 @@ void UIManager::renderCBSResultsDialog()
             ImGui::Text("Runtime: %.3f seconds", m_cbsResults.runtime);
             ImGui::Text("High Level Nodes: %d", m_cbsResults.highLevelNodes);
             ImGui::Text("Low Level Nodes: %d", m_cbsResults.lowLevelNodes);
-            
+
             if (!m_cbsResults.pathsFile.empty()) {
-                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Paths automatically loaded for visualization");
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+                                   "✓ Paths automatically loaded for visualization");
                 ImGui::Text("You can now use the animation controls to view the solution.");
             }
         } else {
@@ -1857,14 +1724,14 @@ void UIManager::renderCBSResultsDialog()
                 ImGui::TextWrapped("Error: %s", m_cbsResults.errorMessage.c_str());
             }
         }
-        
+
         ImGui::Separator();
-        
+
         if (ImGui::Button("Close")) {
             m_showResultsPanel = false;
             ImGui::CloseCurrentPopup();
         }
-        
+
         ImGui::EndPopup();
     }
 }
@@ -1884,33 +1751,29 @@ UIManager::~UIManager()
 // Temporary file management implementation
 std::string UIManager::getTempDirectory()
 {
-    if (m_tempDirPath.empty())
-    {
+    if (m_tempDirPath.empty()) {
         // Per-process directory under the system temp dir: independent of
         // the current working directory and safe from clashing with (or
         // deleting) user files.
-        m_tempDirPath = (std::filesystem::temp_directory_path() /
-                         ("openmapf-" + std::to_string(::getpid()))).string();
+        m_tempDirPath =
+            (std::filesystem::temp_directory_path() / ("openmapf-" + std::to_string(::getpid())))
+                .string();
     }
-    
+
     // Always ensure temp directory exists when requested
-    if (!std::filesystem::exists(m_tempDirPath))
-    {
+    if (!std::filesystem::exists(m_tempDirPath)) {
         createTempDirectory();
     }
-    
+
     return m_tempDirPath;
 }
 
 bool UIManager::createTempDirectory()
 {
-    try
-    {
+    try {
         std::filesystem::create_directories(m_tempDirPath);
         return true;
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         std::cerr << "Failed to create temp directory: " << e.what() << std::endl;
         return false;
     }
@@ -1924,18 +1787,13 @@ void UIManager::addTempFile(const std::string& filename)
 void UIManager::cleanupTempFiles()
 {
     // Clean up tracked temp files
-    for (const auto& file : m_tempFiles)
-    {
-        try
-        {
-            if (std::filesystem::exists(file))
-            {
+    for (const auto& file : m_tempFiles) {
+        try {
+            if (std::filesystem::exists(file)) {
                 std::filesystem::remove(file);
                 std::cout << "Cleaned up temp file: " << file << std::endl;
             }
-        }
-        catch (const std::exception& e)
-        {
+        } catch (const std::exception& e) {
             std::cerr << "Failed to delete temp file " << file << ": " << e.what() << std::endl;
         }
     }
@@ -1949,16 +1807,12 @@ void UIManager::cleanupTempFiles()
 
     // Keep temp directory available (don't remove it)
     // This ensures CBS can always create files when needed
-    try
-    {
-        if (!m_tempDirPath.empty() && !std::filesystem::exists(m_tempDirPath))
-        {
+    try {
+        if (!m_tempDirPath.empty() && !std::filesystem::exists(m_tempDirPath)) {
             std::filesystem::create_directories(m_tempDirPath);
             std::cout << "Recreated temp directory: " << m_tempDirPath << std::endl;
         }
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         std::cerr << "Failed to recreate temp directory: " << e.what() << std::endl;
     }
 }
@@ -2016,15 +1870,13 @@ void UIManager::startLacamSolver()
     std::string tempDir = getTempDirectory();
     // The callback runs on the solver thread: only queue the results here.
     // They are applied on the GUI thread by processPendingResults().
-    driver->solveAsync(m_dynamicAgents, m_env, m_lacamParams, m_currentMapName,
-                       [this](const LacamResults& results) {
-                           std::lock_guard<std::mutex> lock(m_pendingResultsMutex);
-                           m_pendingLacamResults = results;
-                       },
-                       tempDir,
-                       [this](const std::string& filename) {
-                           this->addTempFile(filename);
-                       });
+    driver->solveAsync(
+        m_dynamicAgents, m_env, m_lacamParams, m_currentMapName,
+        [this](const LacamResults& results) {
+            std::lock_guard<std::mutex> lock(m_pendingResultsMutex);
+            m_pendingLacamResults = results;
+        },
+        tempDir, [this](const std::string& filename) { this->addTempFile(filename); });
 }
 
 // Runs on the GUI thread (via processPendingResults)
@@ -2044,34 +1896,38 @@ void UIManager::onLacamComplete(const LacamResults& results)
         try {
             // Load paths for visualization
             // Pass true for lacamFormat to prevent coordinate swapping since we already handle it
-            m_pathManager.loadPaths(results.pathsFile, true);  // Already in correct format after conversion
+            m_pathManager.loadPaths(results.pathsFile,
+                                    true); // Already in correct format after conversion
 
             // Start animation
             m_animController.start(m_pathManager.getPaths());
-            m_animController.setAnimating(true);  // Make sure animation actually starts
+            m_animController.setAnimating(true); // Make sure animation actually starts
 
             // Exit Add/Remove Agents mode to show animated agents
             m_addRemoveAgents = false;
 
-            std::cout << "[" << m_algoNames[m_selectedAlgo] << "] Solution found! Cost: "
-                     << results.solutionCost << ", Makespan: " << results.makespan
-                     << ", Runtime: " << results.runtime << "s" << std::endl;
+            std::cout << "[" << m_algoNames[m_selectedAlgo]
+                      << "] Solution found! Cost: " << results.solutionCost
+                      << ", Makespan: " << results.makespan << ", Runtime: " << results.runtime
+                      << "s" << std::endl;
         } catch (const std::exception& e) {
-            std::cerr << "[" << m_algoNames[m_selectedAlgo] << "] Failed to load paths: "
-                     << e.what() << std::endl;
-            m_lacamResults.errorMessage = "Solution found but failed to load paths: "
-                                        + std::string(e.what());
+            std::cerr << "[" << m_algoNames[m_selectedAlgo]
+                      << "] Failed to load paths: " << e.what() << std::endl;
+            m_lacamResults.errorMessage =
+                "Solution found but failed to load paths: " + std::string(e.what());
         }
     } else {
-        std::cerr << "[" << m_algoNames[m_selectedAlgo] << "] No solution found or error: "
-                 << results.errorMessage << std::endl;
+        std::cerr << "[" << m_algoNames[m_selectedAlgo]
+                  << "] No solution found or error: " << results.errorMessage << std::endl;
     }
 }
 
 void UIManager::renderLacamParametersDialog()
 {
-    if (!m_showAlgoParams) return;
-    if (m_selectedAlgo < 1 || m_selectedAlgo > 3) return;  // Only for LaCAM algorithms
+    if (!m_showAlgoParams)
+        return;
+    if (m_selectedAlgo < 1 || m_selectedAlgo > 3)
+        return; // Only for LaCAM algorithms
 
     std::string popupTitle = m_algoNames[m_selectedAlgo] + " Parameters";
     ImGui::OpenPopup(popupTitle.c_str());
@@ -2079,8 +1935,7 @@ void UIManager::renderLacamParametersDialog()
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-    if (ImGui::BeginPopupModal(popupTitle.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-    {
+    if (ImGui::BeginPopupModal(popupTitle.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Configure %s parameters:", m_algoNames[m_selectedAlgo].c_str());
         ImGui::Separator();
 
@@ -2104,12 +1959,20 @@ void UIManager::renderLacamParametersDialog()
         ImGui::Text("Grid Configuration:");
         if (m_env.m_hexagon) {
             ImGui::Text("  Type: Hexagonal");
-            std::string hexConfig = "odd-row";  // Default
+            std::string hexConfig = "odd-row"; // Default
             switch (m_env.m_hex_grid_type) {
-                case HexGridType::ODD_R: hexConfig = "odd-row"; break;
-                case HexGridType::EVEN_R: hexConfig = "even-row"; break;
-                case HexGridType::ODD_Q: hexConfig = "odd-column"; break;
-                case HexGridType::EVEN_Q: hexConfig = "even-column"; break;
+            case HexGridType::ODD_R:
+                hexConfig = "odd-row";
+                break;
+            case HexGridType::EVEN_R:
+                hexConfig = "even-row";
+                break;
+            case HexGridType::ODD_Q:
+                hexConfig = "odd-column";
+                break;
+            case HexGridType::EVEN_Q:
+                hexConfig = "even-column";
+                break;
             }
             ImGui::Text("  Config: %s", hexConfig.c_str());
         } else {
@@ -2134,27 +1997,30 @@ void UIManager::renderLacamParametersDialog()
 
 void UIManager::renderLacamProgressDialog()
 {
-    if (!m_showProgressDialog || !m_lacamRunning) return;
+    if (!m_showProgressDialog || !m_lacamRunning)
+        return;
 
     ImGui::OpenPopup("LaCAM Progress");
 
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 
-    if (ImGui::BeginPopupModal("LaCAM Progress", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-    {
+    if (ImGui::BeginPopupModal("LaCAM Progress", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("%s is running...", m_algoNames[m_selectedAlgo].c_str());
 
         // Calculate elapsed time
         auto now = std::chrono::steady_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lacamStartTime).count() / 1000.0f;
+        auto elapsed =
+            std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lacamStartTime).count() /
+            1000.0f;
 
         ImGui::Text("Elapsed time: %.2f seconds", elapsed);
 
         // Progress bar (indeterminate)
         static float progress = 0.0f;
         progress += ImGui::GetIO().DeltaTime * 0.2f;
-        if (progress > 1.0f) progress = 0.0f;
+        if (progress > 1.0f)
+            progress = 0.0f;
 
         ImGui::ProgressBar(progress, ImVec2(300, 0), "");
 
@@ -2162,9 +2028,12 @@ void UIManager::renderLacamProgressDialog()
 
         if (ImGui::Button("Cancel", ImVec2(120, 0))) {
             // Cancel the appropriate driver
-            if (m_selectedAlgo == 1) m_lacamDriver.cancel();
-            else if (m_selectedAlgo == 2) m_lacam2Driver.cancel();
-            else if (m_selectedAlgo == 3) m_lacam3Driver.cancel();
+            if (m_selectedAlgo == 1)
+                m_lacamDriver.cancel();
+            else if (m_selectedAlgo == 2)
+                m_lacam2Driver.cancel();
+            else if (m_selectedAlgo == 3)
+                m_lacam3Driver.cancel();
 
             m_lacamRunning = false;
             m_showProgressDialog = false;
@@ -2180,4 +2049,3 @@ void UIManager::renderLacamResultsDialog()
     // Results are shown directly in the Algorithm tab
     // This method is kept for consistency but not used currently
 }
-

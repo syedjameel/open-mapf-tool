@@ -46,8 +46,8 @@ TEST_CASE("XDG default falls back to $HOME/.config", "[config]")
     in.xdgConfigHome = "";
 
     auto candidates = ConfigLocator::candidatePaths(in);
-    CHECK(std::find(candidates.begin(), candidates.end(),
-                    "/home/user/.config/openmapf/env.yaml") != candidates.end());
+    CHECK(std::find(candidates.begin(), candidates.end(), "/home/user/.config/openmapf/env.yaml") !=
+          candidates.end());
 }
 
 TEST_CASE("unset sources are skipped entirely", "[config]")
@@ -84,14 +84,16 @@ TEST_CASE("resolve returns the first existing candidate", "[config]")
 
     SECTION("exe-relative share path is used as fallback")
     {
-        auto r = ConfigLocator::resolve(in, onlyPath("/opt/openmapf/bin/../share/openmapf/env.yaml"));
+        auto r =
+            ConfigLocator::resolve(in, onlyPath("/opt/openmapf/bin/../share/openmapf/env.yaml"));
         REQUIRE(r.has_value());
         CHECK(*r == "/opt/openmapf/bin/../share/openmapf/env.yaml");
     }
 
     SECTION("nothing exists -> nullopt (caller uses built-in defaults)")
     {
-        CHECK_FALSE(ConfigLocator::resolve(in, [](const std::string&) { return false; }).has_value());
+        CHECK_FALSE(
+            ConfigLocator::resolve(in, [](const std::string&) { return false; }).has_value());
     }
 }
 
@@ -115,15 +117,14 @@ TEST_CASE("Environment::loadConfig degrades gracefully", "[config]")
 
     SECTION("valid config is applied")
     {
-        TempFile good(
-            "params:\n"
-            "  width: 800\n"
-            "  height: 600\n"
-            "  square: true\n"
-            "  hexagon: false\n"
-            "  rows: 7\n"
-            "  cols: 9\n",
-            ".yaml");
+        TempFile good("params:\n"
+                      "  width: 800\n"
+                      "  height: 600\n"
+                      "  square: true\n"
+                      "  hexagon: false\n"
+                      "  rows: 7\n"
+                      "  cols: 9\n",
+                      ".yaml");
         Environment env;
         CHECK(env.loadConfig(good.path()));
         CHECK(env.m_rows == 7);

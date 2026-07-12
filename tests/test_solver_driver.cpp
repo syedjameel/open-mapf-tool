@@ -17,8 +17,7 @@ std::vector<Agent> oneAgent()
     return agents;
 }
 
-template <typename Results>
-Results waitForResult(std::future<Results>& fut)
+template <typename Results> Results waitForResult(std::future<Results>& fut)
 {
     REQUIRE(fut.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
     return fut.get();

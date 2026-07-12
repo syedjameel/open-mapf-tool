@@ -6,10 +6,11 @@
 class Environment;
 
 // One external solver known to the tool.
-struct SolverEntry {
-    std::string key;        // stable identifier: "cbs", "lacam", "lacam2", "lacam3", ...
-    std::string name;       // human-readable display name
-    std::string executable; // path to the solver binary; empty = not configured
+struct SolverEntry
+{
+    std::string key;                // stable identifier: "cbs", "lacam", "lacam2", "lacam3", ...
+    std::string name;               // human-readable display name
+    std::string executable;         // path to the solver binary; empty = not configured
     std::vector<std::string> grids; // supported grid tags (informational)
 };
 
@@ -23,7 +24,8 @@ struct SolverEntry {
 //       name: CBSH2-RTC-CHBP-HEX
 //       executable: /path/to/cbs
 //       grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]
-class SolverManifest {
+class SolverManifest
+{
 public:
     // The four solvers the tool ships drivers for, with unset executables.
     static SolverManifest withDefaults();

@@ -13,26 +13,37 @@ namespace {
 // spec path. Instance paths inside the spec are relative to the dir.
 std::string writeSpec(const TempDir& dir, const std::string& body)
 {
-    { std::ofstream m(dir.path() + "/a.map"); m << "type octile\n"; }
-    { std::ofstream s(dir.path() + "/a.scen"); s << "version 1\n"; }
-    { std::ofstream m(dir.path() + "/b.map"); m << "type octile\n"; }
-    { std::ofstream s(dir.path() + "/b.scen"); s << "version 1\n"; }
+    {
+        std::ofstream m(dir.path() + "/a.map");
+        m << "type octile\n";
+    }
+    {
+        std::ofstream s(dir.path() + "/a.scen");
+        s << "version 1\n";
+    }
+    {
+        std::ofstream m(dir.path() + "/b.map");
+        m << "type octile\n";
+    }
+    {
+        std::ofstream s(dir.path() + "/b.scen");
+        s << "version 1\n";
+    }
     const std::string path = dir.path() + "/experiment.yaml";
     std::ofstream out(path);
     out << body;
     return path;
 }
 
-const char* kBasicSpec =
-    "name: smoke\n"
-    "time_limit_s: 5\n"
-    "seeds: [0, 1]\n"
-    "agents: [2, 4]\n"
-    "solvers: [cbs, lacam2]\n"
-    "grids: [square, hex-oddr]\n"
-    "instances:\n"
-    "  - {map: a.map, scen: a.scen}\n"
-    "  - {map: b.map, scen: b.scen}\n";
+const char* kBasicSpec = "name: smoke\n"
+                         "time_limit_s: 5\n"
+                         "seeds: [0, 1]\n"
+                         "agents: [2, 4]\n"
+                         "solvers: [cbs, lacam2]\n"
+                         "grids: [square, hex-oddr]\n"
+                         "instances:\n"
+                         "  - {map: a.map, scen: a.scen}\n"
+                         "  - {map: b.map, scen: b.scen}\n";
 
 } // namespace
 
@@ -90,13 +101,12 @@ TEST_CASE("matrix expansion is solvers x instances x grids x agents x seeds", "[
 TEST_CASE("agent ladder and seed-count shorthands expand", "[experiment]")
 {
     TempDir dir;
-    auto spec = ExperimentSpec::loadFromFile(writeSpec(dir,
-        "name: ladder\n"
-        "agents: {from: 5, to: 20, step: 5}\n"
-        "seeds: 3\n"
-        "solvers: [cbs]\n"
-        "instances:\n"
-        "  - {map: a.map, scen: a.scen}\n"));
+    auto spec = ExperimentSpec::loadFromFile(writeSpec(dir, "name: ladder\n"
+                                                            "agents: {from: 5, to: 20, step: 5}\n"
+                                                            "seeds: 3\n"
+                                                            "solvers: [cbs]\n"
+                                                            "instances:\n"
+                                                            "  - {map: a.map, scen: a.scen}\n"));
 
     CHECK(spec.agentLadder == std::vector<int>{5, 10, 15, 20});
     CHECK(spec.seeds == std::vector<int>{0, 1, 2});
@@ -119,12 +129,9 @@ TEST_CASE("spec errors are actionable", "[experiment]")
         }
     };
 
-    expectError("agents: [2]\nsolvers: [cbs]\ninstances: [{map: a.map, scen: a.scen}]\n",
-                "name");
-    expectError("name: x\nagents: [2]\ninstances: [{map: a.map, scen: a.scen}]\n",
-                "solvers");
-    expectError("name: x\nsolvers: [cbs]\ninstances: [{map: a.map, scen: a.scen}]\n",
-                "agents");
+    expectError("agents: [2]\nsolvers: [cbs]\ninstances: [{map: a.map, scen: a.scen}]\n", "name");
+    expectError("name: x\nagents: [2]\ninstances: [{map: a.map, scen: a.scen}]\n", "solvers");
+    expectError("name: x\nsolvers: [cbs]\ninstances: [{map: a.map, scen: a.scen}]\n", "agents");
     expectError("name: x\nagents: [2]\nsolvers: [cbs]\n", "instances");
     expectError("name: x\nagents: [0]\nsolvers: [cbs]\n"
                 "instances: [{map: a.map, scen: a.scen}]\n",
@@ -167,8 +174,10 @@ TEST_CASE("shuffle is deterministic for a fixed seed", "[experiment]")
 
     // Shuffle is a permutation: same key multiset
     std::set<std::string> ka, kc;
-    for (const auto& t : a) ka.insert(t.key());
-    for (const auto& t : c) kc.insert(t.key());
+    for (const auto& t : a)
+        ka.insert(t.key());
+    for (const auto& t : c)
+        kc.insert(t.key());
     CHECK(ka == kc);
 }
 
@@ -183,11 +192,11 @@ TEST_CASE("task keys match CSV key extraction", "[experiment]")
     t.seed = 3;
     t.timeLimitS = 30;
 
-    std::vector<std::string> csvRow = {"cbs",  "empty-8-8", "empty-8-8-random-1.scen",
-                                       "10",   "hex",       "evenq",
-                                       "3",    "30",        "1",
-                                       "0.5",  "12",        "4",
-                                       "100",  "2000",      "0.1.0",
+    std::vector<std::string> csvRow = {"cbs",   "empty-8-8", "empty-8-8-random-1.scen",
+                                       "10",    "hex",       "evenq",
+                                       "3",     "30",        "1",
+                                       "0.5",   "12",        "4",
+                                       "100",   "2000",      "0.1.0",
                                        "solved"};
     CHECK(t.key() == RunTask::keyFromCsvRow(csvRow));
 }

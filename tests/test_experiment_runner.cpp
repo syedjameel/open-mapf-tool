@@ -31,27 +31,27 @@ const char* kFakeCbsScript =
     "echo '0.25,5,9,50,90,11' >> \"$out\"\n"
     "printf 'Agent 0: (0,0)->(1,1)\\n' > \"$paths\"\n";
 
-const char* kFakeLacamScript =
-    "#!/bin/sh\n"
-    "out=\"\"\n"
-    "while [ $# -gt 0 ]; do\n"
-    "  case \"$1\" in\n"
-    "    -o) out=\"$2\"; shift 2;;\n"
-    "    *) shift;;\n"
-    "  esac\n"
-    "done\n"
-    "cat > \"$out\" <<'EOF'\n"
-    "solved=1\n"
-    "soc=9\n"
-    "makespan=3\n"
-    "comp_time=125\n"
-    "solution=\n"
-    "0:(0,0),(1,1),\n"
-    "1:(1,0),(2,1),\n"
-    "EOF\n";
+const char* kFakeLacamScript = "#!/bin/sh\n"
+                               "out=\"\"\n"
+                               "while [ $# -gt 0 ]; do\n"
+                               "  case \"$1\" in\n"
+                               "    -o) out=\"$2\"; shift 2;;\n"
+                               "    *) shift;;\n"
+                               "  esac\n"
+                               "done\n"
+                               "cat > \"$out\" <<'EOF'\n"
+                               "solved=1\n"
+                               "soc=9\n"
+                               "makespan=3\n"
+                               "comp_time=125\n"
+                               "solution=\n"
+                               "0:(0,0),(1,1),\n"
+                               "1:(1,0),(2,1),\n"
+                               "EOF\n";
 
 // Workspace: tiny map + scen + spec, fake solver scripts, manifest.
-struct Workspace {
+struct Workspace
+{
     TempDir dir;
     TempScript fakeCbs{kFakeCbsScript};
     TempScript fakeLacam{kFakeLacamScript};
@@ -94,15 +94,14 @@ RunnerOptions testOptions()
     return opts;
 }
 
-std::string kSmokeSpec =
-    "name: smoke\n"
-    "output_dir: out\n"
-    "time_limit_s: 5\n"
-    "seeds: [0, 1]\n"
-    "agents: [1, 2]\n"
-    "solvers: [cbs, lacam2]\n"
-    "instances:\n"
-    "  - {map: tiny.map, scen: tiny.scen}\n";
+std::string kSmokeSpec = "name: smoke\n"
+                         "output_dir: out\n"
+                         "time_limit_s: 5\n"
+                         "seeds: [0, 1]\n"
+                         "agents: [1, 2]\n"
+                         "solvers: [cbs, lacam2]\n"
+                         "instances:\n"
+                         "  - {map: tiny.map, scen: tiny.scen}\n";
 
 } // namespace
 
@@ -118,9 +117,9 @@ TEST_CASE("runner executes the full matrix with fake solvers", "[runner]")
     std::size_t progressCalls = 0;
     RunnerProgress last;
     REQUIRE(runner.run([&](const RunnerProgress& p) {
-                ++progressCalls;
-                last = p;
-            }) == 0);
+        ++progressCalls;
+        last = p;
+    }) == 0);
 
     CHECK(progressCalls == 8);
     CHECK(last.completed == 8);
@@ -234,14 +233,14 @@ TEST_CASE("runner kills hung solvers at the hard deadline", "[runner]")
     auto manifest = ws.manifest();
     manifest.find("cbs")->executable = hungSolver.path();
 
-    auto spec = ExperimentSpec::loadFromFile(ws.writeSpec(
-        "name: timeout\n"
-        "output_dir: out-timeout\n"
-        "time_limit_s: 1\n"
-        "agents: [1]\n"
-        "solvers: [cbs]\n"
-        "instances:\n"
-        "  - {map: tiny.map, scen: tiny.scen}\n"));
+    auto spec =
+        ExperimentSpec::loadFromFile(ws.writeSpec("name: timeout\n"
+                                                  "output_dir: out-timeout\n"
+                                                  "time_limit_s: 1\n"
+                                                  "agents: [1]\n"
+                                                  "solvers: [cbs]\n"
+                                                  "instances:\n"
+                                                  "  - {map: tiny.map, scen: tiny.scen}\n"));
 
     auto opts = testOptions();
     opts.hardTimeoutGraceS = 1; // hard kill at ~2s
@@ -264,9 +263,9 @@ TEST_CASE("runner records skipped and error outcomes", "[runner]")
 
     SECTION("scen with fewer agents than requested -> skipped")
     {
-        auto spec = ExperimentSpec::loadFromFile(ws.writeSpec(
-            "name: skip\noutput_dir: out-skip\nagents: [10]\nsolvers: [cbs]\n"
-            "instances: [{map: tiny.map, scen: tiny.scen}]\n"));
+        auto spec = ExperimentSpec::loadFromFile(
+            ws.writeSpec("name: skip\noutput_dir: out-skip\nagents: [10]\nsolvers: [cbs]\n"
+                         "instances: [{map: tiny.map, scen: tiny.scen}]\n"));
         ExperimentRunner runner(spec, ws.manifest(), testOptions());
         REQUIRE(runner.run() == 0);
         auto rows = ResultsCsv::readCompletedRows(runner.resultsCsvPath());
@@ -279,9 +278,9 @@ TEST_CASE("runner records skipped and error outcomes", "[runner]")
         TempScript failing("#!/bin/sh\necho boom 1>&2\nexit 3\n");
         auto manifest = ws.manifest();
         manifest.find("cbs")->executable = failing.path();
-        auto spec = ExperimentSpec::loadFromFile(ws.writeSpec(
-            "name: err\noutput_dir: out-err\nagents: [1]\nsolvers: [cbs]\n"
-            "instances: [{map: tiny.map, scen: tiny.scen}]\n"));
+        auto spec = ExperimentSpec::loadFromFile(
+            ws.writeSpec("name: err\noutput_dir: out-err\nagents: [1]\nsolvers: [cbs]\n"
+                         "instances: [{map: tiny.map, scen: tiny.scen}]\n"));
         ExperimentRunner runner(spec, manifest, testOptions());
         REQUIRE(runner.run() == 0); // attempted; failure recorded in the row
         auto rows = ResultsCsv::readCompletedRows(runner.resultsCsvPath());
@@ -295,9 +294,10 @@ TEST_CASE("runner validation catches unusable solver configs", "[runner]")
     Workspace ws;
 
     auto specFor = [&](const std::string& solver, const std::string& outName) {
-        return ExperimentSpec::loadFromFile(ws.writeSpec(
-            "name: v\noutput_dir: " + outName + "\nagents: [1]\nsolvers: [" + solver + "]\n"
-            "instances: [{map: tiny.map, scen: tiny.scen}]\n"));
+        return ExperimentSpec::loadFromFile(
+            ws.writeSpec("name: v\noutput_dir: " + outName + "\nagents: [1]\nsolvers: [" + solver +
+                         "]\n"
+                         "instances: [{map: tiny.map, scen: tiny.scen}]\n"));
     };
 
     SECTION("unknown driver family")

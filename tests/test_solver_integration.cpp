@@ -38,19 +38,19 @@ TEST_CASE("CBSDriver runs a fake solver end to end", "[solver][integration]")
 {
     // Fake CBS: extracts -o and --outputPaths=..., writes a canned results
     // CSV and a canned paths file.
-    TempScript fakeCbs(
-        "#!/bin/sh\n"
-        "out=\"\"; paths=\"\"\n"
-        "while [ $# -gt 0 ]; do\n"
-        "  case \"$1\" in\n"
-        "    -o) out=\"$2\"; shift 2;;\n"
-        "    --outputPaths=*) paths=\"${1#--outputPaths=}\"; shift;;\n"
-        "    *) shift;;\n"
-        "  esac\n"
-        "done\n"
-        "echo 'runtime,hl expanded,hl generated,ll expanded,ll generated,solution cost' > \"$out\"\n"
-        "echo '0.5,10,20,30,40,7' >> \"$out\"\n"
-        "printf 'Agent 0: (0,0)->(1,1)\\nAgent 1: (1,0)->(2,2)\\n' > \"$paths\"\n");
+    TempScript fakeCbs("#!/bin/sh\n"
+                       "out=\"\"; paths=\"\"\n"
+                       "while [ $# -gt 0 ]; do\n"
+                       "  case \"$1\" in\n"
+                       "    -o) out=\"$2\"; shift 2;;\n"
+                       "    --outputPaths=*) paths=\"${1#--outputPaths=}\"; shift;;\n"
+                       "    *) shift;;\n"
+                       "  esac\n"
+                       "done\n"
+                       "echo 'runtime,hl expanded,hl generated,ll expanded,ll generated,solution "
+                       "cost' > \"$out\"\n"
+                       "echo '0.5,10,20,30,40,7' >> \"$out\"\n"
+                       "printf 'Agent 0: (0,0)->(1,1)\\nAgent 1: (1,0)->(2,2)\\n' > \"$paths\"\n");
 
     TempDir tempDir;
     Environment env;
@@ -60,9 +60,9 @@ TEST_CASE("CBSDriver runs a fake solver end to end", "[solver][integration]")
 
     std::promise<CBSResults> promise;
     auto fut = promise.get_future();
-    driver.solveAsync(twoAgents(), env, CBSParameters{}, "itest",
-                      [&promise](const CBSResults& r) { promise.set_value(r); },
-                      tempDir.path());
+    driver.solveAsync(
+        twoAgents(), env, CBSParameters{}, "itest",
+        [&promise](const CBSResults& r) { promise.set_value(r); }, tempDir.path());
 
     REQUIRE(fut.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
     CBSResults r = fut.get();
@@ -81,27 +81,26 @@ TEST_CASE("LacamDriver runs a fake solver end to end", "[solver][integration]")
 {
     // Fake LaCAM: extracts -o, writes a canned LaCAM output log including a
     // solution section (per-timestep positions for all agents).
-    TempScript fakeLacam(
-        "#!/bin/sh\n"
-        "out=\"\"\n"
-        "while [ $# -gt 0 ]; do\n"
-        "  case \"$1\" in\n"
-        "    -o) out=\"$2\"; shift 2;;\n"
-        "    *) shift;;\n"
-        "  esac\n"
-        "done\n"
-        "cat > \"$out\" <<'EOF'\n"
-        "solved=1\n"
-        "soc=12\n"
-        "soc_lb=10\n"
-        "makespan=2\n"
-        "makespan_lb=2\n"
-        "comp_time=250\n"
-        "solution=\n"
-        "0:(0,0),(1,0),\n"
-        "1:(1,1),(2,1),\n"
-        "2:(2,2),(2,1),\n"
-        "EOF\n");
+    TempScript fakeLacam("#!/bin/sh\n"
+                         "out=\"\"\n"
+                         "while [ $# -gt 0 ]; do\n"
+                         "  case \"$1\" in\n"
+                         "    -o) out=\"$2\"; shift 2;;\n"
+                         "    *) shift;;\n"
+                         "  esac\n"
+                         "done\n"
+                         "cat > \"$out\" <<'EOF'\n"
+                         "solved=1\n"
+                         "soc=12\n"
+                         "soc_lb=10\n"
+                         "makespan=2\n"
+                         "makespan_lb=2\n"
+                         "comp_time=250\n"
+                         "solution=\n"
+                         "0:(0,0),(1,0),\n"
+                         "1:(1,1),(2,1),\n"
+                         "2:(2,2),(2,1),\n"
+                         "EOF\n");
 
     TempDir tempDir;
     Environment env;
@@ -111,9 +110,9 @@ TEST_CASE("LacamDriver runs a fake solver end to end", "[solver][integration]")
 
     std::promise<LacamResults> promise;
     auto fut = promise.get_future();
-    driver.solveAsync(twoAgents(), env, LacamParameters{}, "itest",
-                      [&promise](const LacamResults& r) { promise.set_value(r); },
-                      tempDir.path());
+    driver.solveAsync(
+        twoAgents(), env, LacamParameters{}, "itest",
+        [&promise](const LacamResults& r) { promise.set_value(r); }, tempDir.path());
 
     REQUIRE(fut.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
     LacamResults r = fut.get();
@@ -143,9 +142,9 @@ TEST_CASE("cancel() kills a hung solver promptly", "[solver][integration]")
     driver.setExecutablePath(hungSolver.path());
 
     std::atomic<bool> callbackInvoked{false};
-    driver.solveAsync(twoAgents(), env, CBSParameters{}, "itest",
-                      [&callbackInvoked](const CBSResults&) { callbackInvoked = true; },
-                      tempDir.path());
+    driver.solveAsync(
+        twoAgents(), env, CBSParameters{}, "itest",
+        [&callbackInvoked](const CBSResults&) { callbackInvoked = true; }, tempDir.path());
 
     // Wait until the solver thread is running, then cancel.
     auto start = std::chrono::steady_clock::now();

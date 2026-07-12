@@ -27,26 +27,25 @@ LacamDriverBase::LacamDriverBase(const std::string& executablePath,
 std::string LacamDriverBase::hexConfigString(const Environment& env)
 {
     switch (env.m_hex_grid_type) {
-        case HexGridType::ODD_R:
-            return "odd-row";
-        case HexGridType::EVEN_R:
-            return "even-row";
-        case HexGridType::ODD_Q:
-            return "odd-column";
-        case HexGridType::EVEN_Q:
-            return "even-column";
-        default:
-            return "odd-row";
+    case HexGridType::ODD_R:
+        return "odd-row";
+    case HexGridType::EVEN_R:
+        return "even-row";
+    case HexGridType::ODD_Q:
+        return "odd-column";
+    case HexGridType::EVEN_Q:
+        return "even-column";
+    default:
+        return "odd-row";
     }
 }
 
-void LacamDriverBase::solveAsync(const std::vector<Agent>& agents,
-                                 const Environment& env,
-                                 const LacamParameters& params,
-                                 const std::string& mapName,
+void LacamDriverBase::solveAsync(const std::vector<Agent>& agents, const Environment& env,
+                                 const LacamParameters& params, const std::string& mapName,
                                  std::function<void(const LacamResults&)> callback,
                                  const std::string& tempDir,
-                                 std::function<void(const std::string&)> tempFileCallback) {
+                                 std::function<void(const std::string&)> tempFileCallback)
+{
     // LaCAM-specific command line; the engine owns everything else.
     const bool hex = env.m_hexagon;
     const std::string hexConfig = hexConfigString(env);
@@ -59,13 +58,20 @@ void LacamDriverBase::solveAsync(const std::vector<Agent>& agents,
         inv.pathsFile = prefixPath + "_paths.txt";
         inv.argv = {
             exe,
-            "-m", mapFile,
-            "-i", scenFile,
-            "-N", std::to_string(agentCount),
-            "-t", std::to_string(params.timeLimit),
-            "-s", std::to_string(params.seed),
-            "-v", std::to_string(params.verbose),
-            "-o", inv.outputFile,
+            "-m",
+            mapFile,
+            "-i",
+            scenFile,
+            "-N",
+            std::to_string(agentCount),
+            "-t",
+            std::to_string(params.timeLimit),
+            "-s",
+            std::to_string(params.seed),
+            "-v",
+            std::to_string(params.verbose),
+            "-o",
+            inv.outputFile,
         };
 
         if (params.logShort) {
@@ -120,7 +126,8 @@ void LacamDriverBase::solveAsync(const std::vector<Agent>& agents,
                         std::move(outcomeToResults), tempDir, std::move(tempFileCallback));
 }
 
-bool LacamDriverBase::parseLacamOutput(std::istream& in, LacamResults& results) {
+bool LacamDriverBase::parseLacamOutput(std::istream& in, LacamResults& results)
+{
     std::string line;
     while (std::getline(in, line)) {
         try {
@@ -150,7 +157,8 @@ bool LacamDriverBase::parseLacamOutput(std::istream& in, LacamResults& results) 
     return results.solutionFound;
 }
 
-bool LacamDriverBase::convertLacamPaths(std::istream& inFile, std::ostream& outFile) {
+bool LacamDriverBase::convertLacamPaths(std::istream& inFile, std::ostream& outFile)
+{
     std::vector<std::vector<std::pair<int, int>>> agentPaths;
     std::string line;
     bool inSolution = false;
@@ -163,11 +171,13 @@ bool LacamDriverBase::convertLacamPaths(std::istream& inFile, std::ostream& outF
             continue;
         }
 
-        if (!inSolution) continue;
+        if (!inSolution)
+            continue;
 
         // Parse lines like "0:(1,0),(0,1),"
         size_t colonPos = line.find(':');
-        if (colonPos == std::string::npos) continue;
+        if (colonPos == std::string::npos)
+            continue;
 
         int timeStep = std::stoi(line.substr(0, colonPos));
         maxTimeStep = std::max(maxTimeStep, timeStep);
@@ -237,7 +247,8 @@ bool LacamDriverBase::convertLacamPaths(std::istream& inFile, std::ostream& outF
     }
 
     // Debug output
-    std::cout << "[LaCAM] Converted " << agentPaths.size() << " agent paths, max timestep: " << maxTimeStep << std::endl;
+    std::cout << "[LaCAM] Converted " << agentPaths.size()
+              << " agent paths, max timestep: " << maxTimeStep << std::endl;
 
     return true;
 }

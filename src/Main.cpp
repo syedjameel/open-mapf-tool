@@ -15,53 +15,51 @@ namespace {
 
 void printUsage(const char* argv0)
 {
-    std::cout
-        << "OpenMAPF " << OPENMAPF_VERSION
-        << " - interactive Multi-Agent Path Finding visualizer\n\n"
-        << "Usage: " << argv0 << " [options]                 launch the GUI\n"
-        << "       " << argv0 << " run <experiment.yaml> [run options]\n"
-        << "                                          headless batch experiments\n\n"
-        << "Options:\n"
-        << "  --config <path>   Use this config file (YAML)\n"
-        << "  --version         Print version and exit\n"
-        << "  -h, --help        Print this help and exit\n\n"
-        << "Run options ('" << argv0 << " run --help' for details):\n"
-        << "  --jobs <N>        Parallel workers (default: min(4, cores/2))\n"
-        << "  --resume          Skip runs already complete in results.csv\n"
-        << "  --dry-run         Print the expanded run matrix and exit\n"
-        << "  --solvers <path>  Use this solver manifest instead of discovery\n\n"
-        << "Config discovery order (first match wins):\n"
-        << "  1. --config <path>\n"
-        << "  2. $OPENMAPF_CONFIG\n"
-        << "  3. ${XDG_CONFIG_HOME:-$HOME/.config}/openmapf/env.yaml\n"
-        << "  4. <exe dir>/../share/openmapf/env.yaml\n"
-        << "  5. <exe dir>/../config/env.yaml\n"
-        << "  6. <exe dir>/config/env.yaml\n"
-        << "If no config is found, built-in defaults are used.\n\n"
-        << "The solver manifest (solvers.yaml) is discovered through the same\n"
-        << "locations (override with $OPENMAPF_SOLVERS). It lists the external\n"
-        << "solver executables; solvers without a configured executable are\n"
-        << "shown as unavailable in the GUI.\n";
+    std::cout << "OpenMAPF " << OPENMAPF_VERSION
+              << " - interactive Multi-Agent Path Finding visualizer\n\n"
+              << "Usage: " << argv0 << " [options]                 launch the GUI\n"
+              << "       " << argv0 << " run <experiment.yaml> [run options]\n"
+              << "                                          headless batch experiments\n\n"
+              << "Options:\n"
+              << "  --config <path>   Use this config file (YAML)\n"
+              << "  --version         Print version and exit\n"
+              << "  -h, --help        Print this help and exit\n\n"
+              << "Run options ('" << argv0 << " run --help' for details):\n"
+              << "  --jobs <N>        Parallel workers (default: min(4, cores/2))\n"
+              << "  --resume          Skip runs already complete in results.csv\n"
+              << "  --dry-run         Print the expanded run matrix and exit\n"
+              << "  --solvers <path>  Use this solver manifest instead of discovery\n\n"
+              << "Config discovery order (first match wins):\n"
+              << "  1. --config <path>\n"
+              << "  2. $OPENMAPF_CONFIG\n"
+              << "  3. ${XDG_CONFIG_HOME:-$HOME/.config}/openmapf/env.yaml\n"
+              << "  4. <exe dir>/../share/openmapf/env.yaml\n"
+              << "  5. <exe dir>/../config/env.yaml\n"
+              << "  6. <exe dir>/config/env.yaml\n"
+              << "If no config is found, built-in defaults are used.\n\n"
+              << "The solver manifest (solvers.yaml) is discovered through the same\n"
+              << "locations (override with $OPENMAPF_SOLVERS). It lists the external\n"
+              << "solver executables; solvers without a configured executable are\n"
+              << "shown as unavailable in the GUI.\n";
 }
 
 void printRunUsage(const char* argv0)
 {
-    std::cout
-        << "Usage: " << argv0 << " run <experiment.yaml> [options]\n\n"
-        << "Runs the experiment matrix (solvers x instances x grids x agents x\n"
-        << "seeds) headless and appends one row per run to\n"
-        << "<output_dir>/results.csv (schema: docs/file-formats.md), plus a\n"
-        << "provenance manifest.yaml. See docs/experiments.md.\n\n"
-        << "Options:\n"
-        << "  --jobs <N>        Parallel workers (default: min(4, cores/2))\n"
-        << "  --resume          Skip runs already complete in results.csv\n"
-        << "  --dry-run         Print matrix size and the first rows, then exit\n"
-        << "  --solvers <path>  Solver manifest to use (default: discovered\n"
-        << "                    solvers.yaml; $OPENMAPF_SOLVERS also works)\n"
-        << "  -h, --help        Print this help and exit\n\n"
-        << "Exit codes: 0 = all pending runs attempted; 2 = spec/solver-config\n"
-        << "error or refusing to overwrite existing results without --resume;\n"
-        << "1 = I/O failure while recording results.\n";
+    std::cout << "Usage: " << argv0 << " run <experiment.yaml> [options]\n\n"
+              << "Runs the experiment matrix (solvers x instances x grids x agents x\n"
+              << "seeds) headless and appends one row per run to\n"
+              << "<output_dir>/results.csv (schema: docs/file-formats.md), plus a\n"
+              << "provenance manifest.yaml. See docs/experiments.md.\n\n"
+              << "Options:\n"
+              << "  --jobs <N>        Parallel workers (default: min(4, cores/2))\n"
+              << "  --resume          Skip runs already complete in results.csv\n"
+              << "  --dry-run         Print matrix size and the first rows, then exit\n"
+              << "  --solvers <path>  Solver manifest to use (default: discovered\n"
+              << "                    solvers.yaml; $OPENMAPF_SOLVERS also works)\n"
+              << "  -h, --help        Print this help and exit\n\n"
+              << "Exit codes: 0 = all pending runs attempted; 2 = spec/solver-config\n"
+              << "error or refusing to overwrite existing results without --resume;\n"
+              << "1 = I/O failure while recording results.\n";
 }
 
 int runCommand(int argc, char** argv)
@@ -191,8 +189,8 @@ int runCommand(int argc, char** argv)
         return 2;
     }
 
-    std::cout << "Running " << runner.pendingTasks().size() << " runs with " << "jobs="
-              << (opts.jobs > 0 ? opts.jobs : ExperimentRunner::defaultJobs()) << " -> "
+    std::cout << "Running " << runner.pendingTasks().size() << " runs with "
+              << "jobs=" << (opts.jobs > 0 ? opts.jobs : ExperimentRunner::defaultJobs()) << " -> "
               << runner.resultsCsvPath() << std::endl;
 
     int rc = runner.run([](const RunnerProgress& p) {

@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Grid.hpp"
+#include "HexGridType.h"
 #include <stdexcept>
 #include <string>
 #include <vector>
 #include <yaml-cpp/yaml.h>
-#include "HexGridType.h"
 
 // Constants for tile size calculations
 static constexpr float UI_MARGIN = 100.0f;
@@ -33,7 +33,7 @@ public:
 
     float m_hex_agent_size{5};
     float m_square_agent_size{5};
-    
+
     // Hex grid type (odd-r, even-r, odd-q, even-q)
     HexGridType m_hex_grid_type{HexGridType::ODD_R};
 
@@ -51,13 +51,13 @@ public:
     Grid<int> m_grid;
 
     Environment();
-    explicit Environment(const std::string &config_path);
+    explicit Environment(const std::string& config_path);
     ~Environment();
 
     // Loads config from a YAML file. Returns false (keeping built-in
     // defaults) instead of throwing when the file is missing or invalid.
-    bool loadConfig(const std::string &config_path);
-    void loadMap(const std::string &map_path);
+    bool loadConfig(const std::string& config_path);
+    void loadMap(const std::string& map_path);
 
 private:
     void setDefaults();

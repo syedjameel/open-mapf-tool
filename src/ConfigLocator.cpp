@@ -94,12 +94,13 @@ Inputs systemInputs(const std::string& cliPath, const char* argv0)
 std::optional<std::string> resolveFromSystem(const std::string& cliPath, const char* argv0,
                                              const std::string& fileName)
 {
-    return resolve(systemInputs(cliPath, argv0),
-                   [](const std::string& p) {
-                       std::error_code ec;
-                       return std::filesystem::is_regular_file(p, ec);
-                   },
-                   fileName);
+    return resolve(
+        systemInputs(cliPath, argv0),
+        [](const std::string& p) {
+            std::error_code ec;
+            return std::filesystem::is_regular_file(p, ec);
+        },
+        fileName);
 }
 
 } // namespace ConfigLocator

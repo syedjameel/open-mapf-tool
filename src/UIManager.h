@@ -1,41 +1,43 @@
 #pragma once
 
-#include "imgui.h"
-#include "imfilebrowser.h"
-#include "Environment.h"
-#include "PathManager.h"
 #include "AnimationController.h"
-#include "Types.h"
 #include "CBSDriver.h"
-#include "LacamDriver.h"
+#include "Environment.h"
 #include "ExperimentRunner.h"
 #include "ExperimentSpec.h"
+#include "LacamDriver.h"
 #include "MapFormat.h"
+#include "PathManager.h"
 #include "ResultsCsv.h"
 #include "SolverManifest.h"
-#include <vector>
-#include <string>
+#include "Types.h"
+#include "imfilebrowser.h"
+#include "imgui.h"
+#include <algorithm>
 #include <atomic>
+#include <chrono>
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <string>
 #include <thread>
-#include <chrono>
-#include <filesystem>
-#include <algorithm>
+#include <vector>
 
-class UIManager {
+class UIManager
+{
 public:
     UIManager(Environment& env, PathManager& pathManager, AnimationController& animController,
               SolverManifest& solverManifest);
     ~UIManager(); // Destructor for cleanup
-    
+
     void setupStyle();
     void setupFileDialogs();
-    
-    void renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_pos, const ImVec2& canvas_size, const ImVec2& origin, float zoom);
+
+    void renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_pos,
+                           const ImVec2& canvas_size, const ImVec2& origin, float zoom);
     void renderControlPanel();
-    
+
     void handleFileDialogs();
 
     // Must be called once per frame on the GUI thread: consumes solver
@@ -45,29 +47,30 @@ public:
 
     bool isAddRemoveObstacles() const { return m_addRemoveObstacles; }
     void setAddRemoveObstacles(bool value) { m_addRemoveObstacles = value; }
-    
+
     bool isAddRemoveAgents() const { return m_addRemoveAgents; }
     void setAddRemoveAgents(bool value) { m_addRemoveAgents = value; }
-    
+
     bool isLacamFormat() const { return m_lacamFormat; }
-    
+
     // Agent interaction methods
-    void handleAgentInteraction(const ImVec2& mousePos, const ImVec2& origin, float zoom, bool isHovered, bool isLeftClicked);
+    void handleAgentInteraction(const ImVec2& mousePos, const ImVec2& origin, float zoom,
+                                bool isHovered, bool isLeftClicked);
     const std::vector<Agent>& getDynamicAgents() const { return m_dynamicAgents; }
     std::string getCurrentMapName() const { return m_currentMapName; }
-    
+
 private:
     // UI state
     bool m_addRemoveObstacles = false;
     bool m_addRemoveAgents = false;
     bool m_lacamFormat = false;
-    
+
     // Dynamic agent management
     std::vector<Agent> m_dynamicAgents;
     size_t m_nextAgentId = 0;
-    size_t m_pendingAgentIndex = SIZE_MAX;  // Index of agent awaiting goal placement
+    size_t m_pendingAgentIndex = SIZE_MAX; // Index of agent awaiting goal placement
     std::string m_currentMapName = "";
-    
+
     // UI dialogs
     bool m_showMapNameDialog = false;
     char m_mapNameBuffer[256] = "";
@@ -75,14 +78,13 @@ private:
     bool m_showProgressDialog = false;
     bool m_showParametersDialog = false;
     bool m_showResultsPanel = false;
-    
-    
+
     // File dialogs
     ImGui::FileBrowser m_fileDialog;
     ImGui::FileBrowser m_pathsFileDialog;
     ImGui::FileBrowser m_scenFileDialog;
     ImGui::FileBrowser m_solverExeDialog;
-    int m_solverExeTarget = -1;    // manifest entry being browsed for
+    int m_solverExeTarget = -1; // manifest entry being browsed for
     std::string m_solverSaveStatus;
 
     // Scenario loading (.scen)
@@ -109,13 +111,13 @@ private:
     RunnerProgress m_experimentProgress;
     std::atomic<bool> m_experimentRunning{false};
     int m_experimentExitCode = -1;
-    
+
     // References to other components
     Environment& m_env;
     PathManager& m_pathManager;
     AnimationController& m_animController;
     SolverManifest& m_solvers;
-    
+
     // Algorithm selection
     std::vector<std::string> m_algoNames = {"CBS", "LaCAM", "LaCAM2", "LaCAM3"};
     int m_selectedAlgo = 0;
@@ -146,17 +148,17 @@ private:
     bool m_lacamRunning = false;
     bool m_startLacamAfterSave = false;
     std::chrono::steady_clock::time_point m_lacamStartTime;
-    
+
     // Recent files
     std::vector<std::string> m_recentFiles;
     std::string m_currentMapPath;
     std::string m_currentPathFile;
-    
+
     // Temporary file management
     bool m_useTemporaryFiles = false;
     std::vector<std::string> m_tempFiles;
     std::string m_tempDirPath;
-    
+
     // UI rendering methods
     void renderMapTab();
     void renderSolversTab();
@@ -166,12 +168,12 @@ private:
     void renderPathsTab();
     void renderAnimationControls();
     void renderResultsTab();
-    
+
     // Agent rendering helpers
     void renderDynamicAgents(ImDrawList* draw_list, const ImVec2& origin, float zoom);
-    void renderAgentAtPosition(ImDrawList* draw_list, const Coord& pos, size_t agentId, 
-                              const ImVec2& origin, float zoom, bool isGoal = false);
-    
+    void renderAgentAtPosition(ImDrawList* draw_list, const Coord& pos, size_t agentId,
+                               const ImVec2& origin, float zoom, bool isGoal = false);
+
     // UI dialog methods
     void renderMapNameDialog();
     void renderScenLoadDialog();
@@ -181,7 +183,7 @@ private:
     void renderCBSParametersDialog();
     void renderCBSProgressDialog();
     void renderCBSResultsDialog();
-    
+
     // CBS methods
     void startCBSSolver();
     void onCBSComplete(const CBSResults& results);
@@ -192,18 +194,17 @@ private:
     void renderLacamResultsDialog();
     void startLacamSolver();
     void onLacamComplete(const LacamResults& results);
-    
+
     // File I/O methods
     void saveMapFile(const std::string& filename);
     void saveScenarioFile(const std::string& filename);
-    
+
     // Agent ID management
     void reassignAgentIDs();
-    
+
     // Temporary file management (private methods)
     std::string getTempDirectory();
     void addTempFile(const std::string& filename);
     bool createTempDirectory();
     void cleanupTempFiles();
-    
 };

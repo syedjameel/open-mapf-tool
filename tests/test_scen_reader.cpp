@@ -69,12 +69,11 @@ TEST_CASE("readScen tolerates format variations", "[scen]")
 
     SECTION("malformed lines are skipped and counted")
     {
-        std::istringstream in(
-            "version 1\n"
-            "0\tm.map\t8\t8\t1\t2\t3\t4\t2.0\n"
-            "not a scen line\n"
-            "0\tm.map\t8\t8\tX\tY\t3\t4\t2.0\n"
-            "0\tm.map\t8\t8\t5\t6\t7\t0\t2.0\n");
+        std::istringstream in("version 1\n"
+                              "0\tm.map\t8\t8\t1\t2\t3\t4\t2.0\n"
+                              "not a scen line\n"
+                              "0\tm.map\t8\t8\tX\tY\t3\t4\t2.0\n"
+                              "0\tm.map\t8\t8\t5\t6\t7\t0\t2.0\n");
         auto scen = MapFormat::readScen(in);
         CHECK(scen.entries.size() == 2);
         CHECK(scen.malformedLines == 2);
@@ -161,19 +160,21 @@ TEST_CASE("selectAgents skips unusable entries with per-reason counts", "[scen]"
         e.mapName = "m.map";
         e.mapWidth = w;
         e.mapHeight = h;
-        e.startX = sx; e.startY = sy;
-        e.goalX = gx; e.goalY = gy;
+        e.startX = sx;
+        e.startY = sy;
+        e.goalX = gx;
+        e.goalY = gy;
         return e;
     };
 
     std::vector<MapFormat::ScenEntry> entries = {
-        entry(0, 0, 1, 1),   // ok
-        entry(9, 0, 1, 0),   // start out of bounds (scen for a bigger map)
-        entry(0, 1, 2, 2),   // goal on obstacle
-        entry(3, 3, 0, 2),   // start on tree terrain
-        entry(0, 0, 1, 2),   // duplicate start cell
-        entry(0, 2, 1, 1),   // duplicate goal cell
-        entry(1, 2, 2, 1),   // ok
+        entry(0, 0, 1, 1), // ok
+        entry(9, 0, 1, 0), // start out of bounds (scen for a bigger map)
+        entry(0, 1, 2, 2), // goal on obstacle
+        entry(3, 3, 0, 2), // start on tree terrain
+        entry(0, 0, 1, 2), // duplicate start cell
+        entry(0, 2, 1, 1), // duplicate goal cell
+        entry(1, 2, 2, 1), // ok
     };
 
     auto sel = MapFormat::selectAgents(entries, grid, 4, 4, 100);

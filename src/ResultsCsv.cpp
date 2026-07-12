@@ -36,12 +36,11 @@ std::string formatRow(const RunRecord& r)
     std::snprintf(runtime, sizeof(runtime), "%.6f", r.runtimeS);
 
     std::ostringstream row;
-    row << escapeField(r.solver) << ',' << escapeField(r.map) << ','
-        << escapeField(r.scenario) << ',' << r.agents << ',' << escapeField(r.gridType) << ','
-        << escapeField(r.hexLayout) << ',' << r.seed << ',' << r.timeLimitS << ','
-        << (r.solved ? 1 : 0) << ',' << runtime << ',' << r.solutionCost << ',' << r.makespan
-        << ',' << r.hlExpanded << ',' << r.llExpanded << ',' << escapeField(r.toolVersion)
-        << ',' << escapeField(r.status);
+    row << escapeField(r.solver) << ',' << escapeField(r.map) << ',' << escapeField(r.scenario)
+        << ',' << r.agents << ',' << escapeField(r.gridType) << ',' << escapeField(r.hexLayout)
+        << ',' << r.seed << ',' << r.timeLimitS << ',' << (r.solved ? 1 : 0) << ',' << runtime
+        << ',' << r.solutionCost << ',' << r.makespan << ',' << r.hlExpanded << ',' << r.llExpanded
+        << ',' << escapeField(r.toolVersion) << ',' << escapeField(r.status);
     return row.str();
 }
 

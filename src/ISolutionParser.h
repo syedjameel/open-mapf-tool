@@ -5,7 +5,8 @@
 // Format-neutral outcome of one external solver run. Fields a given solver
 // does not report keep their defaults (-1 / empty). Adapters map this onto
 // the driver-specific result structs the GUI consumes.
-struct SolverOutcome {
+struct SolverOutcome
+{
     bool solved = false;
     double runtimeS = 0.0; // wall clock, unless the output reports better
     long cost = -1;        // sum of costs
@@ -24,7 +25,8 @@ struct SolverOutcome {
 // Parses one solver's output files after its process exits successfully.
 // Implementations are small and format-specific (plan 3.4: the documented
 // extension point for solvers with exotic output).
-class ISolutionParser {
+class ISolutionParser
+{
 public:
     virtual ~ISolutionParser() = default;
 

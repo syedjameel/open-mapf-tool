@@ -60,8 +60,7 @@ void ExternalSolverDriver::cancel()
 }
 
 void ExternalSolverDriver::solveAsync(const std::vector<Agent>& agents, const Environment& env,
-                                      const std::string& mapName,
-                                      InvocationBuilder buildInvocation,
+                                      const std::string& mapName, InvocationBuilder buildInvocation,
                                       std::shared_ptr<ISolutionParser> parser,
                                       OutcomeCallback callback, const std::string& tempDir,
                                       TempFileCallback tempFileCallback)
@@ -79,28 +78,27 @@ void ExternalSolverDriver::solveAsync(const std::vector<Agent>& agents, const En
     m_shouldCancel.store(false);
     m_isRunning.store(true);
 
-    m_solverThread = std::thread([this, agents, env, mapName,
-                                  buildInvocation = std::move(buildInvocation),
-                                  parser = std::move(parser), callback = std::move(callback),
-                                  tempDir, tempFileCallback = std::move(tempFileCallback)]() {
-        try {
-            SolverOutcome outcome =
-                execute(agents, env, mapName, buildInvocation, *parser, tempDir,
-                        tempFileCallback);
+    m_solverThread =
+        std::thread([this, agents, env, mapName, buildInvocation = std::move(buildInvocation),
+                     parser = std::move(parser), callback = std::move(callback), tempDir,
+                     tempFileCallback = std::move(tempFileCallback)]() {
+            try {
+                SolverOutcome outcome = execute(agents, env, mapName, buildInvocation, *parser,
+                                                tempDir, tempFileCallback);
 
-            if (callback && !m_shouldCancel.load()) {
-                callback(outcome);
+                if (callback && !m_shouldCancel.load()) {
+                    callback(outcome);
+                }
+            } catch (const std::exception& e) {
+                SolverOutcome outcome;
+                outcome.errorMessage = m_displayName + " error: " + std::string(e.what());
+                if (callback) {
+                    callback(outcome);
+                }
             }
-        } catch (const std::exception& e) {
-            SolverOutcome outcome;
-            outcome.errorMessage = m_displayName + " error: " + std::string(e.what());
-            if (callback) {
-                callback(outcome);
-            }
-        }
 
-        m_isRunning.store(false);
-    });
+            m_isRunning.store(false);
+        });
 }
 
 SolverOutcome ExternalSolverDriver::execute(const std::vector<Agent>& agents,
@@ -127,8 +125,9 @@ SolverOutcome ExternalSolverDriver::execute(const std::vector<Agent>& agents,
     // Degrade gracefully when the solver binary is absent: report a clear,
     // actionable error instead of executing a nonexistent path.
     if (m_executablePath.empty()) {
-        outcome.errorMessage = m_displayName + " is not configured. Set 'solvers: " +
-                               m_manifestKey + ": " + m_exampleExecutable +
+        outcome.errorMessage = m_displayName +
+                               " is not configured. Set 'solvers: " + m_manifestKey + ": " +
+                               m_exampleExecutable +
                                "' in your env.yaml (run 'openmapf --help' for config locations).";
         return outcome;
     }
@@ -144,8 +143,7 @@ SolverOutcome ExternalSolverDriver::execute(const std::vector<Agent>& agents,
                                std::chrono::steady_clock::now().time_since_epoch())
                                .count();
     const std::string uniquePrefix = mapName + "_" + std::to_string(timestamp);
-    const std::string prefixPath =
-        tempDir.empty() ? uniquePrefix : tempDir + "/" + uniquePrefix;
+    const std::string prefixPath = tempDir.empty() ? uniquePrefix : tempDir + "/" + uniquePrefix;
 
     const std::string mapFile = prefixPath + ".map";
     const std::string scenFile = prefixPath + ".scen";
@@ -184,8 +182,7 @@ SolverOutcome ExternalSolverDriver::execute(const std::vector<Agent>& agents,
         return outcome;
     }
     if (run.exitCode != 0) {
-        outcome.errorMessage =
-            m_displayName + " exited with code " + std::to_string(run.exitCode);
+        outcome.errorMessage = m_displayName + " exited with code " + std::to_string(run.exitCode);
         if (!run.stderrText.empty()) {
             outcome.errorMessage += "\nstderr: " + ProcessRunner::excerpt(run.stderrText);
         }

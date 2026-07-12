@@ -57,15 +57,13 @@ std::string trimmed(std::string s)
 std::string prettyKey(const RunTask& t)
 {
     std::ostringstream k;
-    k << t.solver << " " << t.mapName() << " " << t.grid << " k=" << t.agents
-      << " seed=" << t.seed;
+    k << t.solver << " " << t.mapName() << " " << t.grid << " k=" << t.agents << " seed=" << t.seed;
     return k.str();
 }
 
 } // namespace
 
-ExperimentRunner::ExperimentRunner(ExperimentSpec spec, SolverManifest manifest,
-                                   RunnerOptions opts)
+ExperimentRunner::ExperimentRunner(ExperimentSpec spec, SolverManifest manifest, RunnerOptions opts)
     : m_spec(std::move(spec)), m_manifest(std::move(manifest)), m_opts(std::move(opts))
 {
     if (m_opts.jobs <= 0) {
@@ -217,17 +215,20 @@ RunRecord ExperimentRunner::executeTask(const RunTask& task, const std::string& 
     env.m_square = task.grid == "square";
     env.m_hexagon = !env.m_square;
     const std::string layout = task.hexLayout();
-    if (layout == "oddr") env.m_hex_grid_type = HexGridType::ODD_R;
-    else if (layout == "evenr") env.m_hex_grid_type = HexGridType::EVEN_R;
-    else if (layout == "oddq") env.m_hex_grid_type = HexGridType::ODD_Q;
-    else if (layout == "evenq") env.m_hex_grid_type = HexGridType::EVEN_Q;
+    if (layout == "oddr")
+        env.m_hex_grid_type = HexGridType::ODD_R;
+    else if (layout == "evenr")
+        env.m_hex_grid_type = HexGridType::EVEN_R;
+    else if (layout == "oddq")
+        env.m_hex_grid_type = HexGridType::ODD_Q;
+    else if (layout == "evenq")
+        env.m_hex_grid_type = HexGridType::EVEN_Q;
 
     MapFormat::ScenFile scen;
     try {
         scen = MapFormat::loadScenFile(task.scenPath);
     } catch (const std::exception& e) {
-        std::cerr << "[run] failed to load scen " << task.scenPath << ": " << e.what()
-                  << std::endl;
+        std::cerr << "[run] failed to load scen " << task.scenPath << ": " << e.what() << std::endl;
         rec.status = "error";
         return rec;
     }
@@ -242,8 +243,7 @@ RunRecord ExperimentRunner::executeTask(const RunTask& task, const std::string& 
         std::chrono::seconds(task.timeLimitS + std::max(0, m_opts.hardTimeoutGraceS));
     const auto startTime = std::chrono::steady_clock::now();
     auto elapsedS = [&startTime]() {
-        return std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime)
-            .count();
+        return std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime).count();
     };
 
     // --- drive the solver ----------------------------------------------------
@@ -261,8 +261,9 @@ RunRecord ExperimentRunner::executeTask(const RunTask& task, const std::string& 
 
         std::promise<CBSResults> promise;
         auto fut = promise.get_future();
-        driver.solveAsync(sel.agents, env, params, task.mapName(),
-                          [&promise](const CBSResults& r) { promise.set_value(r); }, runTempDir);
+        driver.solveAsync(
+            sel.agents, env, params, task.mapName(),
+            [&promise](const CBSResults& r) { promise.set_value(r); }, runTempDir);
 
         if (fut.wait_for(hardDeadline) != std::future_status::ready) {
             driver.cancel(); // kills the child; driver dtor joins the thread
@@ -285,9 +286,12 @@ RunRecord ExperimentRunner::executeTask(const RunTask& task, const std::string& 
         Lacam2Driver lacam2;
         Lacam3Driver lacam3;
         LacamDriverBase* driver = nullptr;
-        if (task.solver == "lacam") driver = &lacam;
-        else if (task.solver == "lacam2") driver = &lacam2;
-        else driver = &lacam3;
+        if (task.solver == "lacam")
+            driver = &lacam;
+        else if (task.solver == "lacam2")
+            driver = &lacam2;
+        else
+            driver = &lacam3;
         driver->setExecutablePath(m_manifest.executableFor(task.solver));
 
         LacamParameters params;
@@ -297,9 +301,9 @@ RunRecord ExperimentRunner::executeTask(const RunTask& task, const std::string& 
 
         std::promise<LacamResults> promise;
         auto fut = promise.get_future();
-        driver->solveAsync(sel.agents, env, params, task.mapName(),
-                           [&promise](const LacamResults& r) { promise.set_value(r); },
-                           runTempDir);
+        driver->solveAsync(
+            sel.agents, env, params, task.mapName(),
+            [&promise](const LacamResults& r) { promise.set_value(r); }, runTempDir);
 
         if (fut.wait_for(hardDeadline) != std::future_status::ready) {
             driver->cancel();
@@ -329,8 +333,8 @@ int ExperimentRunner::run(const std::function<void(const RunnerProgress&)>& onPr
     std::error_code ec;
     fs::create_directories(m_spec.outputDir, ec);
     if (ec) {
-        std::cerr << "Error: cannot create output dir " << m_spec.outputDir << ": "
-                  << ec.message() << std::endl;
+        std::cerr << "Error: cannot create output dir " << m_spec.outputDir << ": " << ec.message()
+                  << std::endl;
         return 1;
     }
 
@@ -358,9 +362,8 @@ int ExperimentRunner::run(const std::function<void(const RunnerProgress&)>& onPr
     std::atomic<std::size_t> nextTask{0};
     std::atomic<bool> ioFailure{false};
 
-    const int workerCount =
-        static_cast<int>(std::min<std::size_t>(static_cast<std::size_t>(m_opts.jobs),
-                                               std::max<std::size_t>(tasks.size(), 1)));
+    const int workerCount = static_cast<int>(std::min<std::size_t>(
+        static_cast<std::size_t>(m_opts.jobs), std::max<std::size_t>(tasks.size(), 1)));
 
     auto worker = [&]() {
         while (!m_stop.load()) {

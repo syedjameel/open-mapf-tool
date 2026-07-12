@@ -8,10 +8,9 @@ TEST_CASE("loadPaths parses arrow files with the CBS (row,col) convention", "[pa
     // CBS arrow files store (row,col); loading with lacamFormat=false must
     // swap into the internal (x=col, y=row) convention. Regression guard for
     // the auto-load bug where the swap depended on a UI checkbox.
-    TempFile file(
-        "Agent 0: (1,2)->(1,3)->(2,3)\n"
-        "Agent 1: (5,0)->(4,0)\n",
-        ".txt");
+    TempFile file("Agent 0: (1,2)->(1,3)->(2,3)\n"
+                  "Agent 1: (5,0)->(4,0)\n",
+                  ".txt");
 
     PathManager pm;
     pm.loadPaths(file.path(), /*lacamFormat=*/false);

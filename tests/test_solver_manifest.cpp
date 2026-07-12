@@ -26,15 +26,14 @@ TEST_CASE("default manifest lists the four bundled solver drivers", "[manifest]"
 
 TEST_CASE("loadFromFile merges into defaults", "[manifest]")
 {
-    TempFile file(
-        "solvers:\n"
-        "  - key: cbs\n"
-        "    executable: /opt/solvers/cbs\n"
-        "  - key: my-custom-solver\n"
-        "    name: My Custom Solver\n"
-        "    executable: /opt/solvers/custom\n"
-        "    grids: [square]\n",
-        ".yaml");
+    TempFile file("solvers:\n"
+                  "  - key: cbs\n"
+                  "    executable: /opt/solvers/cbs\n"
+                  "  - key: my-custom-solver\n"
+                  "    name: My Custom Solver\n"
+                  "    executable: /opt/solvers/custom\n"
+                  "    grids: [square]\n",
+                  ".yaml");
 
     auto m = SolverManifest::withDefaults();
     REQUIRE(m.loadFromFile(file.path()));
@@ -55,11 +54,10 @@ TEST_CASE("template files with empty executables never erase configured paths", 
     auto m = SolverManifest::withDefaults();
     m.find("cbs")->executable = "/configured/cbs";
 
-    TempFile tmpl(
-        "solvers:\n"
-        "  - key: cbs\n"
-        "    executable: \"\"\n",
-        ".yaml");
+    TempFile tmpl("solvers:\n"
+                  "  - key: cbs\n"
+                  "    executable: \"\"\n",
+                  ".yaml");
     REQUIRE(m.loadFromFile(tmpl.path()));
 
     CHECK(m.executableFor("cbs") == "/configured/cbs");

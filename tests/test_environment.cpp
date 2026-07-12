@@ -5,14 +5,13 @@
 
 TEST_CASE("loadMap parses a valid MovingAI map", "[environment]")
 {
-    TempFile map(
-        "type octile\n"
-        "height 3\n"
-        "width 4\n"
-        "map\n"
-        "....\n"
-        ".@@.\n"
-        "....\n");
+    TempFile map("type octile\n"
+                 "height 3\n"
+                 "width 4\n"
+                 "map\n"
+                 "....\n"
+                 ".@@.\n"
+                 "....\n");
 
     Environment env;
     env.loadMap(map.path());

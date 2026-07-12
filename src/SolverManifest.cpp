@@ -10,8 +10,8 @@
 
 SolverManifest SolverManifest::withDefaults()
 {
-    const std::vector<std::string> allGrids = {
-        "square", "hex-oddr", "hex-evenr", "hex-oddq", "hex-evenq"};
+    const std::vector<std::string> allGrids = {"square", "hex-oddr", "hex-evenr", "hex-oddq",
+                                               "hex-evenq"};
 
     SolverManifest m;
     m.m_entries = {
@@ -27,8 +27,7 @@ bool SolverManifest::loadFromFile(const std::string& path)
 {
     try {
         YAML::Node root = YAML::LoadFile(path);
-        const std::filesystem::path baseDir =
-            std::filesystem::absolute(path).parent_path();
+        const std::filesystem::path baseDir = std::filesystem::absolute(path).parent_path();
         const YAML::Node& solvers = root["solvers"];
         if (!solvers || !solvers.IsSequence()) {
             std::cerr << "Warning: solver manifest '" << path

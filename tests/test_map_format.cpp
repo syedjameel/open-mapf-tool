@@ -39,48 +39,44 @@ TEST_CASE("charToCell and cellToChar are inverse for known terrain", "[mapformat
 
 TEST_CASE("map load/write round-trips all MovingAI terrain codes", "[mapformat]")
 {
-    const std::string terrainRows =
-        ".@T.\n"
-        "SWO.\n"
-        "T..@\n";
-    TempFile map(
-        "type octile\n"
-        "height 3\n"
-        "width 4\n"
-        "map\n" +
-        terrainRows);
+    const std::string terrainRows = ".@T.\n"
+                                    "SWO.\n"
+                                    "T..@\n";
+    TempFile map("type octile\n"
+                 "height 3\n"
+                 "width 4\n"
+                 "map\n" +
+                 terrainRows);
 
     Environment env;
     env.loadMap(map.path());
 
     // T (trees) must load as blocked -- regression test for defect A1 where
     // T loaded as a pseudo-value that every writer re-emitted as free space.
-    CHECK(MapFormat::isBlocked(env.m_grid.get(2, 0))); // T
-    CHECK(MapFormat::isBlocked(env.m_grid.get(0, 1))); // S
-    CHECK(MapFormat::isBlocked(env.m_grid.get(1, 1))); // W
-    CHECK(MapFormat::isBlocked(env.m_grid.get(2, 1))); // O
+    CHECK(MapFormat::isBlocked(env.m_grid.get(2, 0)));       // T
+    CHECK(MapFormat::isBlocked(env.m_grid.get(0, 1)));       // S
+    CHECK(MapFormat::isBlocked(env.m_grid.get(1, 1)));       // W
+    CHECK(MapFormat::isBlocked(env.m_grid.get(2, 1)));       // O
     CHECK_FALSE(MapFormat::isBlocked(env.m_grid.get(0, 0))); // .
 
     std::ostringstream out;
     MapFormat::writeMap(out, env.m_grid, env.m_cols, env.m_rows);
 
-    CHECK(out.str() ==
-          "type octile\n"
-          "height 3\n"
-          "width 4\n"
-          "map\n" +
-          terrainRows);
+    CHECK(out.str() == "type octile\n"
+                       "height 3\n"
+                       "width 4\n"
+                       "map\n" +
+                           terrainRows);
 }
 
 TEST_CASE("map loader tolerates CRLF line endings", "[mapformat]")
 {
-    TempFile map(
-        "type octile\r\n"
-        "height 2\r\n"
-        "width 2\r\n"
-        "map\r\n"
-        ".@\r\n"
-        "T.\r\n");
+    TempFile map("type octile\r\n"
+                 "height 2\r\n"
+                 "width 2\r\n"
+                 "map\r\n"
+                 ".@\r\n"
+                 "T.\r\n");
 
     Environment env;
     env.loadMap(map.path());
@@ -101,11 +97,10 @@ TEST_CASE("writeMap pads cells outside the grid extent as free", "[mapformat]")
     std::ostringstream out;
     MapFormat::writeMap(out, grid, 3, 2); // one column wider than the grid
 
-    CHECK(out.str() ==
-          "type octile\n"
-          "height 2\n"
-          "width 3\n"
-          "map\n"
-          "@..\n"
-          "...\n");
+    CHECK(out.str() == "type octile\n"
+                       "height 2\n"
+                       "width 3\n"
+                       "map\n"
+                       "@..\n"
+                       "...\n");
 }

@@ -9,14 +9,16 @@
 #include "ResultsCsv.h"
 #include "SolverManifest.h"
 
-struct RunnerOptions {
-    int jobs = 0;              // <= 0: defaultJobs()
-    bool resume = false;       // skip runs already complete in results.csv
+struct RunnerOptions
+{
+    int jobs = 0;               // <= 0: defaultJobs()
+    bool resume = false;        // skip runs already complete in results.csv
     int hardTimeoutGraceS = 10; // hard kill at time_limit_s + grace
     std::string toolVersion = "unknown";
 };
 
-struct RunnerProgress {
+struct RunnerProgress
+{
     std::size_t total = 0;     // pending tasks this invocation
     std::size_t completed = 0; // finished (row written)
     std::string lastKey;       // human-readable id of the last finished run
@@ -28,7 +30,8 @@ struct RunnerProgress {
 // results-CSV row per run (flushed immediately); enforces a hard per-run
 // timeout by killing the solver process; cleans per-run temp outputs after
 // parsing; writes a provenance manifest.yaml next to the results.
-class ExperimentRunner {
+class ExperimentRunner
+{
 public:
     ExperimentRunner(ExperimentSpec spec, SolverManifest manifest, RunnerOptions opts);
 

@@ -1,22 +1,21 @@
 #pragma once
-#include <GLFW/glfw3.h>
+#include "AnimationController.h"
+#include "Environment.h"
+#include "GridInteractionHandler.h"
+#include "PathManager.h"
+#include "SolverManifest.h"
+#include "UIManager.h"
+#include "ViewportManager.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "Environment.h"
-#include "PathManager.h"
-#include "SolverManifest.h"
-#include "AnimationController.h"
-#include "UIManager.h"
-#include "ViewportManager.h"
-#include "GridInteractionHandler.h"
+#include <GLFW/glfw3.h>
 
 class ImGuiMapfApp
 {
 public:
     // configPath / solversPath: resolved config file paths ("" = defaults).
-    explicit ImGuiMapfApp(const std::string& configPath = "",
-                          const std::string& solversPath = "")
+    explicit ImGuiMapfApp(const std::string& configPath = "", const std::string& solversPath = "")
         : m_env(configPath)
     {
         m_solverManifest = SolverManifest::withDefaults();
@@ -40,11 +39,11 @@ private:
     UIManager m_uiManager{m_env, m_pathManager, m_animController, m_solverManifest};
     ViewportManager m_viewportManager;
     GridInteractionHandler m_gridInteractionHandler{m_env};
-    
+
     // Setup methods
     void setupImGui(GLFWwindow* window, const char* glslVersion);
     void cleanupImGui(GLFWwindow* window);
-    
+
     // Main loop methods
     void processFrame(GLFWwindow* window);
     void renderScene();

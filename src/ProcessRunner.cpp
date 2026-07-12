@@ -50,8 +50,7 @@ ProcessRunner::Result ProcessRunner::run(const std::vector<std::string>& argv)
         std::lock_guard<std::mutex> lock(m_mutex);
         m_terminateRequested = false;
         if (subprocess_create(cargv.data(),
-                              subprocess_option_inherit_environment |
-                                  subprocess_option_no_window,
+                              subprocess_option_inherit_environment | subprocess_option_no_window,
                               process) != 0) {
             delete process;
             result.errorMessage = "failed to launch '" + argv[0] + "'";

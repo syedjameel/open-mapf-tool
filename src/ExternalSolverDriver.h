@@ -22,10 +22,12 @@
 // which output/paths files it uses -- the InvocationBuilder -- and (b) how
 // output is parsed -- the ISolutionParser. The public CBSDriver /
 // LacamDriverBase classes are thin adapters over this engine.
-class ExternalSolverDriver {
+class ExternalSolverDriver
+{
 public:
     // Command line plus the files the parser will read/produce.
-    struct Invocation {
+    struct Invocation
+    {
         std::vector<std::string> argv;
         std::string outputFile; // solver's own output (-o)
         std::string pathsFile;  // standard arrow-paths destination
@@ -33,9 +35,9 @@ public:
 
     // Builds the invocation from the generated instance files.
     // prefixPath is "<tempDir>/<mapName>_<timestamp>" (no extension).
-    using InvocationBuilder = std::function<Invocation(
-        const std::string& mapFile, const std::string& scenFile, const std::string& prefixPath,
-        std::size_t agentCount)>;
+    using InvocationBuilder =
+        std::function<Invocation(const std::string& mapFile, const std::string& scenFile,
+                                 const std::string& prefixPath, std::size_t agentCount)>;
 
     using OutcomeCallback = std::function<void(const SolverOutcome&)>;
     using TempFileCallback = std::function<void(const std::string&)>;
@@ -65,8 +67,7 @@ public:
     void solveAsync(const std::vector<Agent>& agents, const Environment& env,
                     const std::string& mapName, InvocationBuilder buildInvocation,
                     std::shared_ptr<ISolutionParser> parser, OutcomeCallback callback,
-                    const std::string& tempDir = "",
-                    TempFileCallback tempFileCallback = nullptr);
+                    const std::string& tempDir = "", TempFileCallback tempFileCallback = nullptr);
 
 private:
     SolverOutcome execute(const std::vector<Agent>& agents, const Environment& env,

@@ -9,7 +9,8 @@
 
 // Small RAII helper: writes `content` to a unique file in the system temp
 // directory and removes it on destruction.
-class TempFile {
+class TempFile
+{
 public:
     explicit TempFile(const std::string& content, const std::string& extension = ".map")
     {
@@ -37,16 +38,16 @@ private:
 };
 
 // RAII helper: writes an executable script to the system temp directory.
-class TempScript {
+class TempScript
+{
 public:
-    explicit TempScript(const std::string& content)
-        : m_file(content, ".sh")
+    explicit TempScript(const std::string& content) : m_file(content, ".sh")
     {
-        std::filesystem::permissions(
-            m_file.path(),
-            std::filesystem::perms::owner_all | std::filesystem::perms::group_read |
-                std::filesystem::perms::group_exec,
-            std::filesystem::perm_options::replace);
+        std::filesystem::permissions(m_file.path(),
+                                     std::filesystem::perms::owner_all |
+                                         std::filesystem::perms::group_read |
+                                         std::filesystem::perms::group_exec,
+                                     std::filesystem::perm_options::replace);
     }
 
     const std::string& path() const { return m_file.path(); }
@@ -57,7 +58,8 @@ private:
 
 // RAII helper: creates a unique directory under the system temp directory
 // and removes it (recursively) on destruction.
-class TempDir {
+class TempDir
+{
 public:
     TempDir()
     {

@@ -7,13 +7,12 @@
 
 CBSDriver::CBSDriver() : m_engine("CBS solver", "cbs", "/path/to/cbs") {}
 
-void CBSDriver::solveAsync(const std::vector<Agent>& agents,
-                           const Environment& env,
-                           const CBSParameters& params,
-                           const std::string& mapName,
+void CBSDriver::solveAsync(const std::vector<Agent>& agents, const Environment& env,
+                           const CBSParameters& params, const std::string& mapName,
                            std::function<void(const CBSResults&)> callback,
                            const std::string& tempDir,
-                           std::function<void(const std::string&)> tempFileCallback) {
+                           std::function<void(const std::string&)> tempFileCallback)
+{
     // CBS-specific command line; the engine owns everything else.
     auto buildInvocation = [params, exe = m_engine.getExecutablePath()](
                                const std::string& mapFile, const std::string& scenFile,
@@ -24,11 +23,16 @@ void CBSDriver::solveAsync(const std::vector<Agent>& agents,
         inv.pathsFile = prefixPath + ".txt";
         inv.argv = {
             exe,
-            "-m", mapFile,
-            "-a", scenFile,
-            "-o", inv.outputFile,
-            "-k", std::to_string(agentCount),
-            "-t", std::to_string(params.cutoffTime),
+            "-m",
+            mapFile,
+            "-a",
+            scenFile,
+            "-o",
+            inv.outputFile,
+            "-k",
+            std::to_string(agentCount),
+            "-t",
+            std::to_string(params.cutoffTime),
             "--heuristics=" + params.heuristic,
             "--cluster_heuristics=" + params.clusterHeuristic,
             "--bypass=" + boolArg(params.bypass),
@@ -72,7 +76,8 @@ void CBSDriver::solveAsync(const std::vector<Agent>& agents,
                         std::move(tempFileCallback));
 }
 
-bool CBSDriver::parseResultsCsv(std::istream& in, CBSResults& results) {
+bool CBSDriver::parseResultsCsv(std::istream& in, CBSResults& results)
+{
     std::string line;
     std::getline(in, line); // Skip header
 
@@ -93,13 +98,14 @@ bool CBSDriver::parseResultsCsv(std::istream& in, CBSResults& results) {
             tokens.push_back(token);
         }
 
-        // CSV format: runtime,#high-level expanded,#high-level generated,#low-level expanded,#low-level generated,solution cost,...
+        // CSV format: runtime,#high-level expanded,#high-level generated,#low-level
+        // expanded,#low-level generated,solution cost,...
         if (tokens.size() >= 6) {
             try {
-                results.runtime = std::stod(tokens[0]);           // runtime
-                results.highLevelNodes = std::stoi(tokens[1]);    // #high-level expanded
-                results.lowLevelNodes = std::stoi(tokens[3]);     // #low-level expanded
-                results.solutionCost = std::stoi(tokens[5]);      // solution cost
+                results.runtime = std::stod(tokens[0]);        // runtime
+                results.highLevelNodes = std::stoi(tokens[1]); // #high-level expanded
+                results.lowLevelNodes = std::stoi(tokens[3]);  // #low-level expanded
+                results.solutionCost = std::stoi(tokens[5]);   // solution cost
 
                 results.solutionFound = (results.solutionCost != -1);
 
