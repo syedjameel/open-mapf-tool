@@ -8,6 +8,8 @@
 #include "Types.h"
 #include "CBSDriver.h"
 #include "LacamDriver.h"
+#include "MapFormat.h"
+#include "ResultsCsv.h"
 #include "SolverManifest.h"
 #include <vector>
 #include <string>
@@ -74,9 +76,22 @@ private:
     // File dialogs
     ImGui::FileBrowser m_fileDialog;
     ImGui::FileBrowser m_pathsFileDialog;
+    ImGui::FileBrowser m_scenFileDialog;
     ImGui::FileBrowser m_solverExeDialog;
     int m_solverExeTarget = -1;    // manifest entry being browsed for
     std::string m_solverSaveStatus;
+
+    // Scenario loading (.scen)
+    bool m_showScenLoadDialog = false;
+    MapFormat::ScenFile m_pendingScen;
+    std::string m_pendingScenPath;
+    int m_scenAgentCount = 10;
+    std::string m_scenLoadStatus;
+    std::string m_currentScenarioName = "interactive";
+
+    // Results CSV export
+    char m_resultsCsvPathBuffer[512] = "openmapf-results.csv";
+    std::string m_resultsExportStatus;
     
     // References to other components
     Environment& m_env;
@@ -141,6 +156,7 @@ private:
     
     // UI dialog methods
     void renderMapNameDialog();
+    void renderScenLoadDialog();
     void renderSaveScenarioDialog();
     void renderProgressDialog();
     void renderParametersDialog();

@@ -1,11 +1,13 @@
 #include "UIManager.h"
 #include "ConfigLocator.h"
+#include "Version.h"
 #include "GridRenderer.h"
 #include "MapFormat.h"
 #include <unistd.h> // ::getpid
 #include <iostream>
 #include <fstream>
 #include <cstring>
+#include <sstream>
 
 UIManager::UIManager(Environment& env, PathManager& pathManager, AnimationController& animController,
                      SolverManifest& solverManifest)
@@ -78,6 +80,8 @@ void UIManager::setupFileDialogs()
     m_pathsFileDialog.SetTitle("Load Paths");
     m_pathsFileDialog.SetTypeFilters({".txt"});
     m_solverExeDialog.SetTitle("Select solver executable");
+    m_scenFileDialog.SetTitle("Load Scenario");
+    m_scenFileDialog.SetTypeFilters({".scen"});
 }
 
 void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_pos, const ImVec2& canvas_size, const ImVec2& origin, float zoom)
@@ -353,6 +357,11 @@ void UIManager::renderControlPanel()
     {
         renderSaveScenarioDialog();
     }
+
+    if (m_showScenLoadDialog)
+    {
+        renderScenLoadDialog();
+    }
     
     // Algorithm parameter dialogs
     if (m_selectedAlgo == 0) {
@@ -375,6 +384,16 @@ void UIManager::renderMapTab()
         m_fileDialog.Open();
     }
     m_fileDialog.Display();
+
+    if (ImGui::Button("Load Scenario"))
+    {
+        m_scenFileDialog.Open();
+    }
+    m_scenFileDialog.Display();
+    if (!m_scenLoadStatus.empty())
+    {
+        ImGui::TextWrapped("%s", m_scenLoadStatus.c_str());
+    }
     
     if (ImGui::Button("Remove Map"))
     {
@@ -793,6 +812,32 @@ void UIManager::handleFileDialogs()
         m_pathsFileDialog.ClearSelected();
     }
 
+    if (m_scenFileDialog.HasSelected())
+    {
+        auto path = m_scenFileDialog.GetSelected().string();
+        try
+        {
+            m_pendingScen = MapFormat::loadScenFile(path);
+            m_pendingScenPath = path;
+            if (m_pendingScen.entries.empty())
+            {
+                m_scenLoadStatus = "No usable entries in " + path;
+            }
+            else
+            {
+                m_scenAgentCount = static_cast<int>(
+                    std::min<std::size_t>(10, m_pendingScen.entries.size()));
+                m_scenLoadStatus.clear();
+                m_showScenLoadDialog = true;
+            }
+        }
+        catch (const std::exception& e)
+        {
+            m_scenLoadStatus = std::string("Error loading scenario: ") + e.what();
+        }
+        m_scenFileDialog.ClearSelected();
+    }
+
     m_solverExeDialog.Display();
     if (m_solverExeDialog.HasSelected())
     {
@@ -1148,6 +1193,83 @@ void UIManager::reassignAgentIDs()
 }
 
 
+void UIManager::renderScenLoadDialog()
+{
+    ImGui::OpenPopup("Load Scenario");
+
+    if (ImGui::BeginPopupModal("Load Scenario", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        const auto& first = m_pendingScen.entries.front();
+        std::string fileName = m_pendingScenPath;
+        size_t lastSlash = fileName.find_last_of("/\\");
+        if (lastSlash != std::string::npos)
+        {
+            fileName = fileName.substr(lastSlash + 1);
+        }
+
+        ImGui::Text("Scenario: %s", fileName.c_str());
+        ImGui::Text("Entries: %zu   For map: %s (%zux%zu)", m_pendingScen.entries.size(),
+                    first.mapName.c_str(), first.mapWidth, first.mapHeight);
+        if (m_pendingScen.malformedLines > 0)
+        {
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.2f, 1.0f), "%zu malformed lines skipped",
+                               m_pendingScen.malformedLines);
+        }
+        if (first.mapWidth != m_env.m_cols || first.mapHeight != m_env.m_rows)
+        {
+            ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.2f, 1.0f),
+                               "Warning: scenario is for a %zux%zu map, current grid is %zux%zu.\n"
+                               "Load the matching map first; out-of-range agents will be skipped.",
+                               first.mapWidth, first.mapHeight, m_env.m_cols, m_env.m_rows);
+        }
+
+        ImGui::Separator();
+        int maxAgents = static_cast<int>(m_pendingScen.entries.size());
+        ImGui::SliderInt("Agents (first k entries)", &m_scenAgentCount, 1, maxAgents);
+
+        if (ImGui::Button("Load", ImVec2(120, 0)))
+        {
+            auto sel = MapFormat::selectAgents(m_pendingScen.entries, m_env.m_grid, m_env.m_cols,
+                                               m_env.m_rows,
+                                               static_cast<std::size_t>(m_scenAgentCount));
+
+            m_dynamicAgents = sel.agents;
+            reassignAgentIDs();
+            m_pendingAgentIndex = SIZE_MAX;
+            m_currentScenarioName = fileName;
+
+            // Show the loaded agents in the editor view; clear stale paths
+            m_pathManager.clear();
+            m_animController.reset();
+            m_addRemoveAgents = true;
+            m_addRemoveObstacles = false;
+
+            std::ostringstream status;
+            status << "Loaded " << sel.agents.size() << " agents from " << fileName;
+            std::size_t skipped =
+                sel.skippedOutOfBounds + sel.skippedBlocked + sel.skippedDuplicate;
+            if (skipped > 0)
+            {
+                status << " (skipped " << sel.skippedOutOfBounds << " out-of-bounds, "
+                       << sel.skippedBlocked << " blocked, " << sel.skippedDuplicate
+                       << " duplicate)";
+            }
+            m_scenLoadStatus = status.str();
+
+            m_showScenLoadDialog = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(120, 0)))
+        {
+            m_showScenLoadDialog = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
 void UIManager::renderSolversTab()
 {
     ImGui::Spacing();
@@ -1248,6 +1370,69 @@ void UIManager::renderResultsTab()
     } else {
         ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No algorithm results yet.");
         ImGui::Text("Run an algorithm to see detailed statistics.");
+    }
+
+    // --- Results CSV export (stable schema, docs/file-formats.md) ---
+    const bool haveCbsRun = m_selectedAlgo == 0 &&
+                            (m_cbsResults.solutionFound || !m_cbsResults.errorMessage.empty());
+    const bool haveLacamRun = m_selectedAlgo != 0 && (m_lacamResults.solutionFound ||
+                                                      !m_lacamResults.errorMessage.empty());
+    if (haveCbsRun || haveLacamRun)
+    {
+        ImGui::Separator();
+        ImGui::Text("Export last run");
+        ImGui::SetNextItemWidth(-90.0f);
+        ImGui::InputText("##resultscsv", m_resultsCsvPathBuffer, sizeof(m_resultsCsvPathBuffer));
+        ImGui::SameLine();
+        if (ImGui::Button("Append"))
+        {
+            RunRecord rec;
+            rec.solver = m_algoNames[m_selectedAlgo];
+            rec.map = m_currentMapName;
+            rec.scenario = m_currentScenarioName;
+            for (const auto& agent : m_dynamicAgents)
+            {
+                if (agent.hasGoal) rec.agents++;
+            }
+            rec.gridType = m_env.m_hexagon ? "hex" : "square";
+            if (m_env.m_hexagon)
+            {
+                switch (m_env.m_hex_grid_type)
+                {
+                    case HexGridType::ODD_R: rec.hexLayout = "oddr"; break;
+                    case HexGridType::EVEN_R: rec.hexLayout = "evenr"; break;
+                    case HexGridType::ODD_Q: rec.hexLayout = "oddq"; break;
+                    case HexGridType::EVEN_Q: rec.hexLayout = "evenq"; break;
+                }
+            }
+            rec.toolVersion = OPENMAPF_VERSION;
+            if (m_selectedAlgo == 0)
+            {
+                rec.seed = m_cbsParams.seed;
+                rec.timeLimitS = m_cbsParams.cutoffTime;
+                rec.solved = m_cbsResults.solutionFound;
+                rec.runtimeS = m_cbsResults.runtime;
+                rec.solutionCost = m_cbsResults.solutionCost;
+                rec.hlExpanded = m_cbsResults.highLevelNodes;
+                rec.llExpanded = m_cbsResults.lowLevelNodes;
+            }
+            else
+            {
+                rec.seed = m_lacamParams.seed;
+                rec.timeLimitS = m_lacamParams.timeLimit;
+                rec.solved = m_lacamResults.solutionFound;
+                rec.runtimeS = m_lacamResults.runtime;
+                rec.solutionCost = m_lacamResults.solutionCost;
+                rec.makespan = m_lacamResults.makespan;
+            }
+            m_resultsExportStatus = ResultsCsv::appendRow(m_resultsCsvPathBuffer, rec)
+                                        ? "Appended to " + std::string(m_resultsCsvPathBuffer)
+                                        : "Failed to write " + std::string(m_resultsCsvPathBuffer);
+        }
+        if (!m_resultsExportStatus.empty())
+        {
+            ImGui::TextWrapped("%s", m_resultsExportStatus.c_str());
+        }
     }
 }
 
