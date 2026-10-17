@@ -543,7 +543,7 @@ void UIManager::renderAlgorithmTab()
         ImGui::Text("CBS Results:");
 
         if (m_cbsResults.solutionFound) {
-            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Solution Found!");
+            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Solution Found!");
             ImGui::Text("Solution Cost: %d", m_cbsResults.solutionCost);
             ImGui::Text("Runtime: %.6f seconds", m_cbsResults.runtime);
             ImGui::Text("High Level Nodes: %d", m_cbsResults.highLevelNodes);
@@ -551,10 +551,10 @@ void UIManager::renderAlgorithmTab()
 
             if (!m_cbsResults.pathsFile.empty()) {
                 ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
-                                   "✓ Paths loaded for visualization");
+                                   "Paths loaded for visualization");
             }
         } else if (!m_cbsResults.errorMessage.empty()) {
-            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "✗ Error:");
+            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Error:");
             ImGui::TextWrapped("%s", m_cbsResults.errorMessage.c_str());
         }
     } else if (m_selectedAlgo >= 1 && m_selectedAlgo <= 3 &&
@@ -563,7 +563,7 @@ void UIManager::renderAlgorithmTab()
         ImGui::Text("%s Results:", m_algoNames[m_selectedAlgo].c_str());
 
         if (m_lacamResults.solutionFound) {
-            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Solution Found!");
+            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Solution Found!");
             ImGui::Text("Sum of Costs: %d (LB: %d)", m_lacamResults.solutionCost,
                         m_lacamResults.socLowerBound);
             ImGui::Text("Makespan: %d (LB: %d)", m_lacamResults.makespan,
@@ -573,10 +573,10 @@ void UIManager::renderAlgorithmTab()
 
             if (!m_lacamResults.pathsFile.empty()) {
                 ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
-                                   "✓ Paths loaded for visualization");
+                                   "Paths loaded for visualization");
             }
         } else if (!m_lacamResults.errorMessage.empty()) {
-            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "✗ Error:");
+            ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "Error:");
             ImGui::TextWrapped("%s", m_lacamResults.errorMessage.c_str());
         }
     }
@@ -1392,7 +1392,7 @@ void UIManager::renderResultsTab()
         ImGui::Text("Low Level Nodes: %d", m_cbsResults.lowLevelNodes);
 
         if (!m_cbsResults.pathsFile.empty()) {
-            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Paths loaded for visualization");
+            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Paths loaded for visualization");
         }
     } else if (!m_cbsResults.errorMessage.empty()) {
         ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "CBS Error:");
@@ -1734,7 +1734,7 @@ void UIManager::renderCBSResultsDialog()
 
             if (!m_cbsResults.pathsFile.empty()) {
                 ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
-                                   "✓ Paths automatically loaded for visualization");
+                                   "Paths automatically loaded for visualization");
                 ImGui::Text("You can now use the animation controls to view the solution.");
             }
         } else {
