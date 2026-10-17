@@ -39,6 +39,7 @@ private:
     UIManager m_uiManager{m_env, m_pathManager, m_animController, m_solverManifest};
     ViewportManager m_viewportManager;
     GridInteractionHandler m_gridInteractionHandler{m_env};
+    ImVec2 m_lastCanvasSize{0.0f, 0.0f};
 
     // Setup methods
     void setupImGui(GLFWwindow* window, const char* glslVersion);

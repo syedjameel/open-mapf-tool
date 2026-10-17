@@ -98,9 +98,13 @@ void ImGuiMapfApp::renderScene()
     // Handle viewport interactions (pan/zoom)
     ImGuiIO& io = ImGui::GetIO();
     m_viewportManager.handleInput(io, is_hovered, canvas_pos);
-    if (m_uiManager.consumeFitViewRequest()) {
-        // Jump on the first frames (initial grid), animate afterwards.
-        fitViewToGrid(canvas_size, ImGui::GetFrameCount() <= 2);
+    const bool canvasResized = std::abs(canvas_size.x - m_lastCanvasSize.x) > 1.0f ||
+                               std::abs(canvas_size.y - m_lastCanvasSize.y) > 1.0f;
+    m_lastCanvasSize = canvas_size;
+    if (m_uiManager.consumeFitViewRequest() || canvasResized) {
+        // Jump when the Scene is (re)sized, e.g. while the docking layout
+        // settles on startup; animate when the grid itself changed.
+        fitViewToGrid(canvas_size, canvasResized);
     }
     m_viewportManager.update(io.DeltaTime);
 
