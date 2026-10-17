@@ -1380,8 +1380,11 @@ void UIManager::renderResultsPlots()
     };
 
     const ImPlotAxisFlags fit = ImPlotAxisFlags_AutoFit;
+    // Margin around auto-fitted data so edge points (and markers) stay visible
+    ImPlot::PushStyleVar(ImPlotStyleVar_FitPadding, ImVec2(0.08f, 0.12f));
     if (!ImPlot::BeginSubplots("##results", 2, 2, ImVec2(-1, px(560)),
                                ImPlotSubplotFlags_ShareItems)) {
+        ImPlot::PopStyleVar();
         return;
     }
     ImPlot::SetupLegend(ImPlotLocation_South, ImPlotLegendFlags_Horizontal);
@@ -1458,6 +1461,7 @@ void UIManager::renderResultsPlots()
         ImPlot::EndPlot();
     }
     ImPlot::EndSubplots();
+    ImPlot::PopStyleVar();
 }
 
 void UIManager::renderSolversTab()
