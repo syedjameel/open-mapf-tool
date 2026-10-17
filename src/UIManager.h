@@ -9,6 +9,7 @@
 #include "MapFormat.h"
 #include "PathManager.h"
 #include "ResultsCsv.h"
+#include "ResultsSummary.h"
 #include "SolverManifest.h"
 #include "Types.h"
 #include "imfilebrowser.h"
@@ -121,6 +122,14 @@ private:
     RunnerProgress m_experimentProgress;
     std::atomic<bool> m_experimentRunning{false};
     int m_experimentExitCode = -1;
+
+    // Live plots of the experiment's results.csv (re-read when it changes)
+    ResultsSummary m_liveSummary;
+    std::string m_liveSummaryPath;
+    std::filesystem::file_time_type m_liveSummaryStamp{};
+    double m_liveSummaryCheckedAt = -1.0;
+    void refreshLiveSummary(const std::string& csvPath);
+    void renderResultsPlots();
 
     // References to other components
     Environment& m_env;

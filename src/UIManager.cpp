@@ -3,6 +3,8 @@
 #include "GridRenderer.h"
 #include "MapFormat.h"
 #include "Version.h"
+#include "implot.h"
+#include <cmath>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -1317,6 +1319,145 @@ void UIManager::renderExperimentsTab()
     if (!m_experimentStatus.empty()) {
         ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "%s", m_experimentStatus.c_str());
     }
+
+    if (m_experimentSpec) {
+        refreshLiveSummary(m_experimentSpec->outputDir + "/results.csv");
+        renderResultsPlots();
+    }
+}
+
+void UIManager::refreshLiveSummary(const std::string& csvPath)
+{
+    // Poll twice a second; re-read only when the file changed
+    const double now = ImGui::GetTime();
+    if (csvPath == m_liveSummaryPath && now - m_liveSummaryCheckedAt < 0.5) {
+        return;
+    }
+    m_liveSummaryCheckedAt = now;
+    std::error_code ec;
+    const auto stamp = std::filesystem::last_write_time(csvPath, ec);
+    if (ec) {
+        m_liveSummary = ResultsSummary{};
+        m_liveSummaryPath = csvPath;
+        return;
+    }
+    if (csvPath != m_liveSummaryPath || stamp != m_liveSummaryStamp) {
+        m_liveSummary = ResultsSummary::fromCsv(csvPath);
+        m_liveSummaryPath = csvPath;
+        m_liveSummaryStamp = stamp;
+    }
+}
+
+void UIManager::renderResultsPlots()
+{
+    const ResultsSummary& sum = m_liveSummary;
+    if (sum.rows == 0) {
+        return;
+    }
+    ImGui::Separator();
+    ImGui::Text("Results: %zu runs, %zu solved", sum.rows, sum.solvedRows);
+
+    // Same palette and series order as scripts/openmapf-plot --style paper
+    static const ImU32 palette[] = {IM_COL32(0, 160, 60, 255),   IM_COL32(70, 110, 255, 255),
+                                    IM_COL32(255, 109, 0, 255),  IM_COL32(170, 100, 210, 255),
+                                    IM_COL32(0, 184, 212, 255),  IM_COL32(255, 102, 196, 255),
+                                    IM_COL32(253, 208, 23, 255), IM_COL32(214, 39, 40, 255)};
+    static const ImPlotMarker markers[] = {ImPlotMarker_Circle, ImPlotMarker_Square,
+                                           ImPlotMarker_Diamond, ImPlotMarker_Up};
+    auto specFor = [&](std::size_t i, bool fill) {
+        const ImVec4 c = ImGui::ColorConvertU32ToFloat4(palette[i % IM_ARRAYSIZE(palette)]);
+        ImPlotSpec spec;
+        spec.LineColor = c;
+        spec.LineWeight = 2.0f * m_env.m_ui_scale;
+        spec.Marker = markers[i % IM_ARRAYSIZE(markers)];
+        spec.MarkerSize = 3.5f * m_env.m_ui_scale;
+        spec.MarkerFillColor = c;
+        if (fill) {
+            spec.FillColor = c;
+            spec.FillAlpha = 0.25f;
+        }
+        return spec;
+    };
+
+    const ImPlotAxisFlags fit = ImPlotAxisFlags_AutoFit;
+    if (!ImPlot::BeginSubplots("##results", 2, 2, ImVec2(-1, px(560)),
+                               ImPlotSubplotFlags_ShareItems)) {
+        return;
+    }
+    ImPlot::SetupLegend(ImPlotLocation_South, ImPlotLegendFlags_Horizontal);
+
+    std::vector<double> x, y, lo, hi;
+    auto collect = [&](const SummarySeries& s, auto xOf, auto yOf, auto sdOf) {
+        x.clear();
+        y.clear();
+        lo.clear();
+        hi.clear();
+        for (const auto& p : s.points) {
+            const double xv = xOf(p), yv = yOf(p);
+            if (std::isnan(xv) || std::isnan(yv)) {
+                continue;
+            }
+            const double sd = std::isnan(sdOf(p)) ? 0.0 : sdOf(p);
+            x.push_back(xv);
+            y.push_back(yv);
+            lo.push_back(yv - sd);
+            hi.push_back(yv + sd);
+        }
+    };
+    auto noSd = [](const SummaryPoint&) { return 0.0; };
+
+    if (ImPlot::BeginPlot("Success rate")) {
+        ImPlot::SetupAxes("agents", "solved", fit, 0);
+        ImPlot::SetupAxisLimits(ImAxis_Y1, -0.02, 1.05, ImPlotCond_Always);
+        for (std::size_t i = 0; i < sum.series.size(); ++i) {
+            collect(
+                sum.series[i], [](const SummaryPoint& p) { return double(p.agents); },
+                [](const SummaryPoint& p) { return p.successRate(); }, noSd);
+            ImPlot::PlotLine(sum.series[i].label.c_str(), x.data(), y.data(), int(x.size()),
+                             specFor(i, false));
+        }
+        ImPlot::EndPlot();
+    }
+    if (ImPlot::BeginPlot("Sum of costs")) {
+        ImPlot::SetupAxes("agents", "mean SoC", fit, fit);
+        for (std::size_t i = 0; i < sum.series.size(); ++i) {
+            collect(
+                sum.series[i], [](const SummaryPoint& p) { return double(p.agents); },
+                [](const SummaryPoint& p) { return p.meanCost; },
+                [](const SummaryPoint& p) { return p.sdCost; });
+            const char* label = sum.series[i].label.c_str();
+            ImPlot::PlotShaded(label, x.data(), lo.data(), hi.data(), int(x.size()),
+                               specFor(i, true));
+            ImPlot::PlotLine(label, x.data(), y.data(), int(x.size()), specFor(i, false));
+        }
+        ImPlot::EndPlot();
+    }
+    if (ImPlot::BeginPlot("Runtime")) {
+        ImPlot::SetupAxes("agents", "mean runtime [s]", fit, fit);
+        ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+        for (std::size_t i = 0; i < sum.series.size(); ++i) {
+            collect(
+                sum.series[i], [](const SummaryPoint& p) { return double(p.agents); },
+                [](const SummaryPoint& p) { return std::max(p.meanRuntimeS, 1e-4); }, noSd);
+            ImPlot::PlotLine(sum.series[i].label.c_str(), x.data(), y.data(), int(x.size()),
+                             specFor(i, false));
+        }
+        ImPlot::EndPlot();
+    }
+    const bool lb = sum.hasLowerBounds;
+    if (ImPlot::BeginPlot(lb ? "Quality vs runtime" : "Cost vs runtime")) {
+        ImPlot::SetupAxes("mean runtime [s]", lb ? "SoC / LB" : "mean SoC", fit, fit);
+        ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
+        for (std::size_t i = 0; i < sum.series.size(); ++i) {
+            collect(
+                sum.series[i], [](const SummaryPoint& p) { return std::max(p.meanRuntimeS, 1e-4); },
+                [lb](const SummaryPoint& p) { return lb ? p.meanCostOverLb : p.meanCost; }, noSd);
+            ImPlot::PlotLine(sum.series[i].label.c_str(), x.data(), y.data(), int(x.size()),
+                             specFor(i, false));
+        }
+        ImPlot::EndPlot();
+    }
+    ImPlot::EndSubplots();
 }
 
 void UIManager::renderSolversTab()

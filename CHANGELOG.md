@@ -11,6 +11,9 @@ uses [Semantic Versioning](https://semver.org/).
   screens and screen recordings.
 - `openmapf run --verbose`: prints each solver command line.
 - `openmapf-plot` also writes `solution_cost_vs_agents.png`.
+- Live result plots in the GUI Experiments tab (ImPlot): success rate, sum of
+  costs, runtime, and quality vs runtime per solver x grid, refreshed as runs
+  finish. ImPlot v1.0 is vendored as a submodule (MIT).
 - `openmapf-plot --style paper`: quality-vs-runtime publication figure
   (per-map panels, map thumbnails, serif type, PDF + PNG).
 - Results CSV: `soc_lb` and `makespan_lb` columns (solver-reported lower

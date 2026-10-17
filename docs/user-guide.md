@@ -78,6 +78,12 @@ output directory, a **Resume** checkbox, **Start**/**Stop**, a progress bar
 with the last finished run, and the results CSV path on completion. *Stop*
 finishes in-flight runs before stopping.
 
+Below it, four live plots of the experiment's `results.csv` (also shown for
+results that already exist when a spec is loaded): success rate, mean sum of
+costs (±1 sd band), mean runtime (log scale) against the agent count, and
+quality against runtime (sum of costs / lower bound when the solver reports
+it). One line per solver × grid; the plots refresh as runs finish.
+
 ### Paths tab
 
 - **Load Paths** — load a precomputed arrow-format path file (`.txt`,

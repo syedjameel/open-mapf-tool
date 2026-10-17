@@ -146,7 +146,7 @@ minted with the first archived release).
 
 ## Acknowledgements
 
-- [Dear ImGui](https://github.com/ocornut/imgui),
+- [Dear ImGui](https://github.com/ocornut/imgui), [ImPlot](https://github.com/epezent/implot),
   [imgui-filebrowser](https://github.com/AirGuanZ/imgui-filebrowser),
   [GLFW](https://www.glfw.org/), [yaml-cpp](https://github.com/jbeder/yaml-cpp),
   [subprocess.h](https://github.com/sheredom/subprocess.h),

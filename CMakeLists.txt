@@ -70,6 +70,7 @@ add_library(openmapf_core STATIC
     src/PathManager.cpp
     src/ProcessRunner.cpp
     src/ResultsCsv.cpp
+    src/ResultsSummary.cpp
     src/SolutionParsers.cpp
     src/SolverManifest.cpp
 )
@@ -104,11 +105,14 @@ add_library(imgui STATIC
     vendor/imgui/imgui_tables.cpp
     vendor/imgui/backends/imgui_impl_glfw.cpp
     vendor/imgui/backends/imgui_impl_opengl3.cpp
+    vendor/implot/implot.cpp
+    vendor/implot/implot_items.cpp
 )
 
 target_include_directories(imgui PUBLIC
     vendor/imgui
     vendor/imgui/backends
+    vendor/implot
 )
 
 target_link_libraries(imgui PUBLIC
@@ -194,6 +198,7 @@ if(OPENMAPF_BUILD_TESTS)
         tests/test_path_manager.cpp
         tests/test_process_runner.cpp
         tests/test_results_csv.cpp
+        tests/test_results_summary.cpp
         tests/test_scen_reader.cpp
         tests/test_scen_writer.cpp
         tests/test_solver_driver.cpp

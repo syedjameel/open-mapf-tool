@@ -8,6 +8,7 @@ depends on the following third-party components.
 | Component | Location | Upstream | License |
 |---|---|---|---|
 | Dear ImGui (docking branch) | `vendor/imgui/` (git submodule) | https://github.com/ocornut/imgui | MIT (LICENSE.txt in the submodule) |
+| ImPlot (v1.0) | `vendor/implot/` (git submodule) | https://github.com/epezent/implot | MIT (LICENSE in the submodule) |
 | imgui-filebrowser | `vendor/imgui-filebrowser/imfilebrowser.h` | https://github.com/AirGuanZ/imgui-filebrowser | MIT (full text below) |
 | subprocess.h | `vendor/subprocess/subprocess.h` | https://github.com/sheredom/subprocess.h | Unlicense / public domain (full text embedded at the top of the file) |
 

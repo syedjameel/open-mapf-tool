@@ -1,6 +1,7 @@
 #include "App.h"
 #include "GridRenderer.h"
 #include "Version.h"
+#include "implot.h"
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -10,6 +11,7 @@ void ImGuiMapfApp::setupImGui(GLFWwindow* window, const char* glslVersion)
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
@@ -24,6 +26,15 @@ void ImGuiMapfApp::setupImGui(GLFWwindow* window, const char* glslVersion)
         fontConfig.SizePixels = 13.0f * scale;
         io.Fonts->AddFontDefault(&fontConfig);
         ImGui::GetStyle().ScaleAllSizes(scale);
+
+        ImPlotStyle& plot = ImPlot::GetStyle();
+        for (ImVec2* v :
+             {&plot.PlotDefaultSize, &plot.PlotMinSize, &plot.MajorTickLen, &plot.MinorTickLen,
+              &plot.PlotPadding, &plot.LabelPadding, &plot.LegendPadding, &plot.LegendInnerPadding,
+              &plot.LegendSpacing, &plot.MousePosPadding, &plot.AnnotationPadding}) {
+            *v = ImVec2(v->x * scale, v->y * scale);
+        }
+        plot.PlotBorderSize *= scale;
     }
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -36,6 +47,7 @@ void ImGuiMapfApp::cleanupImGui(GLFWwindow* window)
 {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+    ImPlot::DestroyContext();
     ImGui::DestroyContext();
     glfwDestroyWindow(window);
     glfwTerminate();
