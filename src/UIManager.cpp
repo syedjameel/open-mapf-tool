@@ -1409,6 +1409,26 @@ void UIManager::renderResultsPlots()
     };
     auto noSd = [](const SummaryPoint&) { return 0.0; };
 
+    // Log axes get explicit limits: fit padding is linear and would push
+    // their lower bound towards zero
+    double rtLo = HUGE_VAL, rtHi = -HUGE_VAL;
+    for (const auto& s : sum.series) {
+        for (const auto& p : s.points) {
+            if (!std::isnan(p.meanRuntimeS)) {
+                rtLo = std::min(rtLo, std::max(p.meanRuntimeS, 1e-4));
+                rtHi = std::max(rtHi, std::max(p.meanRuntimeS, 1e-4));
+            }
+        }
+    }
+    if (rtLo > rtHi) {
+        rtLo = 1e-3;
+        rtHi = 1.0;
+    }
+    auto setupLogRuntime = [&](ImAxis axis) {
+        ImPlot::SetupAxisScale(axis, ImPlotScale_Log10);
+        ImPlot::SetupAxisLimits(axis, rtLo / 2.0, rtHi * 2.0, ImPlotCond_Always);
+    };
+
     if (ImPlot::BeginPlot("Success rate")) {
         ImPlot::SetupAxes("agents", "solved", fit, 0);
         ImPlot::SetupAxisLimits(ImAxis_Y1, -0.02, 1.05, ImPlotCond_Always);
@@ -1436,8 +1456,8 @@ void UIManager::renderResultsPlots()
         ImPlot::EndPlot();
     }
     if (ImPlot::BeginPlot("Runtime")) {
-        ImPlot::SetupAxes("agents", "mean runtime [s]", fit, fit);
-        ImPlot::SetupAxisScale(ImAxis_Y1, ImPlotScale_Log10);
+        ImPlot::SetupAxes("agents", "mean runtime [s]", fit, 0);
+        setupLogRuntime(ImAxis_Y1);
         for (std::size_t i = 0; i < sum.series.size(); ++i) {
             collect(
                 sum.series[i], [](const SummaryPoint& p) { return double(p.agents); },
@@ -1449,8 +1469,8 @@ void UIManager::renderResultsPlots()
     }
     const bool lb = sum.hasLowerBounds;
     if (ImPlot::BeginPlot(lb ? "Quality vs runtime" : "Cost vs runtime")) {
-        ImPlot::SetupAxes("mean runtime [s]", lb ? "SoC / LB" : "mean SoC", fit, fit);
-        ImPlot::SetupAxisScale(ImAxis_X1, ImPlotScale_Log10);
+        ImPlot::SetupAxes("mean runtime [s]", lb ? "SoC / LB" : "mean SoC", 0, fit);
+        setupLogRuntime(ImAxis_X1);
         for (std::size_t i = 0; i < sum.series.size(); ++i) {
             collect(
                 sum.series[i], [](const SummaryPoint& p) { return std::max(p.meanRuntimeS, 1e-4); },
