@@ -84,6 +84,14 @@ void UIManager::setupFileDialogs()
     m_scenFileDialog.SetTypeFilters({".scen"});
     m_experimentFileDialog.SetTitle("Load experiment spec");
     m_experimentFileDialog.SetTypeFilters({".yaml", ".yml"});
+
+    // imgui-filebrowser's default 700x450 window, scaled with the rest of the UI
+    const int width = static_cast<int>(700.0f * m_env.m_ui_scale);
+    const int height = static_cast<int>(450.0f * m_env.m_ui_scale);
+    for (ImGui::FileBrowser* dialog : {&m_fileDialog, &m_pathsFileDialog, &m_scenFileDialog,
+                                       &m_solverExeDialog, &m_experimentFileDialog}) {
+        dialog->SetWindowSize(width, height);
+    }
 }
 
 void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_pos,
