@@ -582,6 +582,13 @@ void UIManager::renderAlgorithmTab()
     }
 }
 
+void UIManager::onGridChanged()
+{
+    m_pathManager.clear();
+    m_animController.reset();
+    m_fitViewRequested = true;
+}
+
 void UIManager::renderGridSizeTab()
 {
     ImGui::Spacing();
@@ -593,7 +600,7 @@ void UIManager::renderGridSizeTab()
         if (!square) {
             m_env.m_square = true;
             m_env.m_hexagon = false;
-            m_fitViewRequested = true;
+            onGridChanged();
         }
     }
     ImGui::SameLine();
@@ -601,7 +608,7 @@ void UIManager::renderGridSizeTab()
         if (!hex) {
             m_env.m_hexagon = true;
             m_env.m_square = false;
-            m_fitViewRequested = true;
+            onGridChanged();
         }
     }
 
@@ -630,7 +637,7 @@ void UIManager::renderGridSizeTab()
             m_env.m_hex_grid_type = HexGridType::EVEN_Q;
 
         if (m_env.m_hex_grid_type != before) {
-            m_fitViewRequested = true;
+            onGridChanged();
         }
     }
 
@@ -639,14 +646,14 @@ void UIManager::renderGridSizeTab()
     if (ImGui::SliderInt("##ColsSlider", (int*)&m_env.m_cols, 1, 200)) {
         m_env.m_grid = Grid<int>(m_env.m_cols, m_env.m_rows, 0);
         m_env.calculateTileSizes();
-        m_fitViewRequested = true;
+        onGridChanged();
     }
 
     ImGui::Text("Rows: %zu", m_env.m_rows);
     if (ImGui::SliderInt("##RowsSlider", (int*)&m_env.m_rows, 1, 200)) {
         m_env.m_grid = Grid<int>(m_env.m_cols, m_env.m_rows, 0);
         m_env.calculateTileSizes();
-        m_fitViewRequested = true;
+        onGridChanged();
     }
 
     ImGui::Separator();
@@ -749,7 +756,7 @@ void UIManager::handleFileDialogs()
         try {
             auto path = m_fileDialog.GetSelected().string();
             m_env.loadMap(path);
-            m_fitViewRequested = true;
+            onGridChanged();
             m_recentFiles.push_back(path);
             m_currentMapPath = path;
             // Clean up temporary files when loading new map

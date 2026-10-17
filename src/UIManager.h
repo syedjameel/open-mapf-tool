@@ -169,6 +169,10 @@ private:
     std::vector<std::string> m_tempFiles;
     std::string m_tempDirPath;
 
+    // The grid's size, type, or content changed: loaded paths no longer match
+    // it, and the Scene should re-frame it.
+    void onGridChanged();
+
     // UI rendering methods
     void renderMapTab();
     void renderSolversTab();
