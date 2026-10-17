@@ -49,20 +49,56 @@ TEST_CASE("results CSV header is the documented stable schema", "[results]")
 {
     CHECK(std::string(ResultsCsv::kHeader) ==
           "solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s,"
-          "solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version,status");
+          "solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version,status,"
+          "soc_lb,makespan_lb");
 }
 
 TEST_CASE("formatRow emits one value per header column", "[results]")
 {
     CHECK(ResultsCsv::formatRow(sampleRecord()) ==
           "CBS,random-32-32-10,random-32-32-10-random-1.scen,20,hex,oddr,42,60,"
-          "1,1.234567,512,40,120,3400,0.1.0,solved");
+          "1,1.234567,512,40,120,3400,0.1.0,solved,-1,-1");
 
     // Unknown metrics stay -1; unsolved is 0
     RunRecord r;
     r.solver = "LaCAM";
     r.toolVersion = "0.1.0";
-    CHECK(ResultsCsv::formatRow(r) == "LaCAM,,,0,,,0,0,0,0.000000,-1,-1,-1,-1,0.1.0,");
+    CHECK(ResultsCsv::formatRow(r) == "LaCAM,,,0,,,0,0,0,0.000000,-1,-1,-1,-1,0.1.0,,-1,-1");
+}
+
+TEST_CASE("formatRow writes the lower-bound columns last", "[results]")
+{
+    RunRecord r = sampleRecord();
+    r.socLowerBound = 90;
+    r.makespanLowerBound = 17;
+    const auto fields = ResultsCsv::splitRow(ResultsCsv::formatRow(r));
+    REQUIRE(fields.size() == ResultsCsv::kColumnCount);
+    CHECK(fields[16] == "90");
+    CHECK(fields[17] == "17");
+}
+
+TEST_CASE("appendRow keeps an older, narrower file rectangular", "[results]")
+{
+    TempDir dir;
+    const std::string csv = dir.path() + "/results.csv";
+    const std::string oldHeader =
+        "solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s,"
+        "solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version,status";
+    {
+        std::ofstream out(csv);
+        out << oldHeader << "\n";
+    }
+
+    RunRecord r = sampleRecord();
+    r.socLowerBound = 90;
+    REQUIRE(ResultsCsv::appendRow(csv, r));
+
+    auto lines = readLines(csv);
+    REQUIRE(lines.size() == 2);
+    CHECK(lines[0] == oldHeader);
+    const auto fields = ResultsCsv::splitRow(lines[1]);
+    CHECK(fields.size() == 16);
+    CHECK(fields[15] == "solved");
 }
 
 TEST_CASE("CSV escaping quotes fields with separators and quotes", "[results]")

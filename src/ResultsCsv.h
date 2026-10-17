@@ -29,6 +29,9 @@ struct RunRecord
     // (killed at the hard deadline), or "skipped" (instance unusable, e.g.
     // scen has fewer agents than requested).
     std::string status;
+    // Lower bounds reported by the solver (LaCAM family); -1 = unknown.
+    long socLowerBound = -1;
+    long makespanLowerBound = -1;
 };
 
 namespace ResultsCsv {
@@ -39,7 +42,7 @@ namespace ResultsCsv {
 extern const char* const kHeader;
 
 // Number of columns in kHeader.
-constexpr std::size_t kColumnCount = 16;
+constexpr std::size_t kColumnCount = 18;
 
 // Column indices that identify a run for resume purposes:
 // solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s.
@@ -65,7 +68,9 @@ std::vector<std::vector<std::string>> readCompletedRows(const std::string& path)
 // Append a record to the CSV at `path`: writes the header first when the
 // file is missing or empty, appends the row, and flushes immediately so
 // completed runs survive a crash (the batch runner's resume semantics
-// depend on this). Returns false on I/O failure.
+// depend on this). When the existing file has an older, narrower header,
+// the row is cut to that header's width so the file stays rectangular.
+// Returns false on I/O failure.
 bool appendRow(const std::string& path, const RunRecord& r);
 
 } // namespace ResultsCsv

@@ -1477,6 +1477,8 @@ void UIManager::renderResultsTab()
                 rec.runtimeS = m_lacamResults.runtime;
                 rec.solutionCost = m_lacamResults.solutionCost;
                 rec.makespan = m_lacamResults.makespan;
+                rec.socLowerBound = m_lacamResults.socLowerBound;
+                rec.makespanLowerBound = m_lacamResults.makespanLowerBound;
             }
             if (m_selectedAlgo == 0) {
                 rec.status = m_cbsResults.solutionFound

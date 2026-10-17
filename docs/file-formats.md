@@ -151,7 +151,7 @@ experiment runner. **This schema is a stable interface**: new columns are
 only ever appended.
 
 ```
-solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s,solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version,status
+solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s,solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version,status,soc_lb,makespan_lb
 ```
 
 | Column | Type | Meaning |
@@ -172,8 +172,12 @@ solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s,solved,runtime
 | ll_expanded | int | low-level nodes expanded; `-1` = unknown |
 | tool_version | string | OpenMAPF version that produced the row |
 | status | string | `solved`, `unsolved`, `error`, `hard_timeout` (killed at the hard deadline), or `skipped` (instance unusable, e.g. too few scen entries) |
+| soc_lb | int | solver-reported lower bound on the sum of costs; `-1` = unknown |
+| makespan_lb | int | solver-reported lower bound on the makespan; `-1` = unknown |
 
 Writer semantics: the header is written only when the file is new or empty;
+appending to a file written by an older version keeps that file's columns
+(rows are cut to its header width);
 rows are appended and flushed immediately (a crashed batch run can be
 resumed by counting complete rows). String fields containing commas,
 quotes, or newlines are quoted RFC-4180 style with doubled quotes.

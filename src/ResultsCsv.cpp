@@ -11,7 +11,8 @@ namespace ResultsCsv {
 
 const char* const kHeader =
     "solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s,"
-    "solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version,status";
+    "solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version,status,"
+    "soc_lb,makespan_lb";
 
 std::string escapeField(const std::string& field)
 {
@@ -40,7 +41,8 @@ std::string formatRow(const RunRecord& r)
         << ',' << r.agents << ',' << escapeField(r.gridType) << ',' << escapeField(r.hexLayout)
         << ',' << r.seed << ',' << r.timeLimitS << ',' << (r.solved ? 1 : 0) << ',' << runtime
         << ',' << r.solutionCost << ',' << r.makespan << ',' << r.hlExpanded << ',' << r.llExpanded
-        << ',' << escapeField(r.toolVersion) << ',' << escapeField(r.status);
+        << ',' << escapeField(r.toolVersion) << ',' << escapeField(r.status) << ','
+        << r.socLowerBound << ',' << r.makespanLowerBound;
     return row.str();
 }
 
@@ -129,6 +131,20 @@ bool appendRow(const std::string& path, const RunRecord& r)
     const bool needHeader =
         !std::filesystem::exists(path, ec) || std::filesystem::file_size(path, ec) == 0;
 
+    // Older files keep their narrower schema: rows are cut to the file's
+    // header width (columns are only ever appended, so a prefix is valid).
+    std::size_t fileColumns = kColumnCount;
+    if (!needHeader) {
+        std::ifstream head(path, std::ios::binary);
+        std::string headerLine;
+        if (std::getline(head, headerLine)) {
+            if (!headerLine.empty() && headerLine.back() == '\r') {
+                headerLine.pop_back();
+            }
+            fileColumns = std::min(kColumnCount, splitRow(headerLine).size());
+        }
+    }
+
     // Crash repair: if the previous process died mid-row the file ends
     // without a newline; terminate that partial row so the new row does not
     // concatenate onto it (readCompletedRows ignores the partial row either
@@ -153,7 +169,15 @@ bool appendRow(const std::string& path, const RunRecord& r)
     } else if (needRepairNewline) {
         file << '\n';
     }
-    file << formatRow(r) << '\n';
+    std::string row = formatRow(r);
+    if (fileColumns < kColumnCount) {
+        const auto fields = splitRow(row);
+        row.clear();
+        for (std::size_t i = 0; i < fileColumns && i < fields.size(); ++i) {
+            row += (i ? "," : "") + escapeField(fields[i]);
+        }
+    }
+    file << row << '\n';
     file.flush(); // completed rows must survive a crash (resume semantics)
     return file.good();
 }

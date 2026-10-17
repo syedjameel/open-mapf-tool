@@ -316,6 +316,8 @@ RunRecord ExperimentRunner::executeTask(const RunTask& task, const std::string& 
         rec.runtimeS = r.runtime;
         rec.solutionCost = r.solutionCost;
         rec.makespan = r.makespan;
+        rec.socLowerBound = r.socLowerBound;
+        rec.makespanLowerBound = r.makespanLowerBound;
         rec.status = r.solutionFound ? "solved" : (r.errorMessage.empty() ? "unsolved" : "error");
         if (!r.errorMessage.empty()) {
             std::cerr << "[run] " << prettyKey(task) << ": " << r.errorMessage << std::endl;
