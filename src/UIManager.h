@@ -173,6 +173,9 @@ private:
     // it, and the Scene should re-frame it.
     void onGridChanged();
 
+    // Fixed widget sizes in pixels, scaled with env.yaml ui_scale
+    float px(float pixels) const { return pixels * m_env.m_ui_scale; }
+
     // UI rendering methods
     void renderMapTab();
     void renderSolversTab();

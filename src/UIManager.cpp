@@ -998,7 +998,7 @@ void UIManager::renderMapNameDialog()
 
         ImGui::Separator();
 
-        if (ImGui::Button("OK", ImVec2(120, 0))) {
+        if (ImGui::Button("OK", ImVec2(px(120), 0))) {
             if (strlen(m_mapNameBuffer) > 0) {
                 m_currentMapName = std::string(m_mapNameBuffer);
                 m_showMapNameDialog = false;
@@ -1008,7 +1008,7 @@ void UIManager::renderMapNameDialog()
         }
 
         ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+        if (ImGui::Button("Cancel", ImVec2(px(120), 0))) {
             m_showMapNameDialog = false;
             ImGui::CloseCurrentPopup();
         }
@@ -1043,7 +1043,7 @@ void UIManager::renderSaveScenarioDialog()
 
         ImGui::Separator();
 
-        if (ImGui::Button("Save Map + Scenario", ImVec2(200, 0))) {
+        if (ImGui::Button("Save Map + Scenario", ImVec2(px(200), 0))) {
             try {
                 std::string mapFile, scenFile;
 
@@ -1091,7 +1091,7 @@ void UIManager::renderSaveScenarioDialog()
         }
 
         ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+        if (ImGui::Button("Cancel", ImVec2(px(120), 0))) {
             m_showSaveScenarioDialog = false;
             ImGui::CloseCurrentPopup();
         }
@@ -1167,7 +1167,7 @@ void UIManager::renderScenLoadDialog()
         int maxAgents = static_cast<int>(m_pendingScen.entries.size());
         ImGui::SliderInt("Agents (first k entries)", &m_scenAgentCount, 1, maxAgents);
 
-        if (ImGui::Button("Load", ImVec2(120, 0))) {
+        if (ImGui::Button("Load", ImVec2(px(120), 0))) {
             auto sel =
                 MapFormat::selectAgents(m_pendingScen.entries, m_env.m_grid, m_env.m_cols,
                                         m_env.m_rows, static_cast<std::size_t>(m_scenAgentCount));
@@ -1198,7 +1198,7 @@ void UIManager::renderScenLoadDialog()
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+        if (ImGui::Button("Cancel", ImVec2(px(120), 0))) {
             m_showScenLoadDialog = false;
             ImGui::CloseCurrentPopup();
         }
@@ -1348,7 +1348,7 @@ void UIManager::renderSolversTab()
 
         char buf[1024];
         std::snprintf(buf, sizeof(buf), "%s", entry.executable.c_str());
-        ImGui::SetNextItemWidth(-90.0f);
+        ImGui::SetNextItemWidth(px(-90.0f));
         if (ImGui::InputText("##exe", buf, sizeof(buf))) {
             entry.executable = buf;
         }
@@ -1418,7 +1418,7 @@ void UIManager::renderResultsTab()
     if (haveCbsRun || haveLacamRun) {
         ImGui::Separator();
         ImGui::Text("Export last run");
-        ImGui::SetNextItemWidth(-90.0f);
+        ImGui::SetNextItemWidth(px(-90.0f));
         ImGui::InputText("##resultscsv", m_resultsCsvPathBuffer, sizeof(m_resultsCsvPathBuffer));
         ImGui::SameLine();
         if (ImGui::Button("Append")) {
@@ -1671,12 +1671,12 @@ void UIManager::renderCBSParametersDialog()
 
         ImGui::Separator();
 
-        if (ImGui::Button("OK", ImVec2(120, 0))) {
+        if (ImGui::Button("OK", ImVec2(px(120), 0))) {
             m_showAlgoParams = false;
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+        if (ImGui::Button("Cancel", ImVec2(px(120), 0))) {
             m_showAlgoParams = false;
             ImGui::CloseCurrentPopup();
         }
@@ -2009,12 +2009,12 @@ void UIManager::renderLacamParametersDialog()
 
         ImGui::Separator();
 
-        if (ImGui::Button("OK", ImVec2(120, 0))) {
+        if (ImGui::Button("OK", ImVec2(px(120), 0))) {
             m_showAlgoParams = false;
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
-        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+        if (ImGui::Button("Cancel", ImVec2(px(120), 0))) {
             m_showAlgoParams = false;
             ImGui::CloseCurrentPopup();
         }
@@ -2050,11 +2050,11 @@ void UIManager::renderLacamProgressDialog()
         if (progress > 1.0f)
             progress = 0.0f;
 
-        ImGui::ProgressBar(progress, ImVec2(300, 0), "");
+        ImGui::ProgressBar(progress, ImVec2(px(300), 0), "");
 
         ImGui::Separator();
 
-        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+        if (ImGui::Button("Cancel", ImVec2(px(120), 0))) {
             // Cancel the appropriate driver
             if (m_selectedAlgo == 1)
                 m_lacamDriver.cancel();
