@@ -12,6 +12,16 @@ void ImGuiMapfApp::setupImGui(GLFWwindow* window, const char* glslVersion)
     ImGui::StyleColorsDark();
     m_uiManager.setupStyle();
 
+    // Rasterize the font at the scaled size (sharper than FontGlobalScale)
+    // and scale paddings, spacings and roundings to match.
+    const float scale = m_env.m_ui_scale;
+    if (scale != 1.0f) {
+        ImFontConfig fontConfig;
+        fontConfig.SizePixels = 13.0f * scale;
+        io.Fonts->AddFontDefault(&fontConfig);
+        ImGui::GetStyle().ScaleAllSizes(scale);
+    }
+
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glslVersion);
 

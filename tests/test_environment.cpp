@@ -46,3 +46,35 @@ TEST_CASE("loadMap rejects bad input", "[environment]")
         CHECK_THROWS(env.loadMap(map.path()));
     }
 }
+
+TEST_CASE("loadConfig reads and clamps ui_scale", "[environment]")
+{
+    SECTION("absent key keeps the default")
+    {
+        TempFile cfg("params:\n  rows: 5\n");
+        Environment env(cfg.path());
+        CHECK(env.m_ui_scale == 1.0f);
+    }
+
+    SECTION("valid value")
+    {
+        TempFile cfg("params:\n  ui_scale: 2.0\n");
+        Environment env(cfg.path());
+        CHECK(env.m_ui_scale == 2.0f);
+    }
+
+    SECTION("out-of-range values are clamped")
+    {
+        TempFile big("params:\n  ui_scale: 9\n");
+        CHECK(Environment(big.path()).m_ui_scale == Environment::UI_SCALE_MAX);
+        TempFile small("params:\n  ui_scale: 0.1\n");
+        CHECK(Environment(small.path()).m_ui_scale == Environment::UI_SCALE_MIN);
+    }
+
+    SECTION("non-numeric value falls back to defaults")
+    {
+        TempFile cfg("params:\n  ui_scale: huge\n");
+        Environment env(cfg.path());
+        CHECK(env.m_ui_scale == 1.0f);
+    }
+}

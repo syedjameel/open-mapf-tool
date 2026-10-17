@@ -4,6 +4,12 @@ All notable changes to OpenMAPF are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
 uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+- `ui_scale` in `env.yaml` (0.5–4): scales fonts and widget sizes for HiDPI
+  screens and screen recordings.
+
 ## [0.1.0] — unreleased
 
 First publication-ready release, superseding the pre-hardening prototype

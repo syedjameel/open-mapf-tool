@@ -24,6 +24,11 @@ public:
     size_t m_rows{0};
     size_t m_cols{0};
 
+    // GUI scale for fonts and widget sizes (HiDPI screens, screen recordings).
+    float m_ui_scale{1.0f};
+    static constexpr float UI_SCALE_MIN = 0.5f;
+    static constexpr float UI_SCALE_MAX = 4.0f;
+
     float m_tile_size{10};
 
     float m_hex_tile_size{1};

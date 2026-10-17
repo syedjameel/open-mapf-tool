@@ -166,6 +166,7 @@ params:
   hexagon: false   # start in hex-grid mode
   rows: 12         # initial grid rows
   cols: 12         # initial grid columns
+  ui_scale: 1.0    # font and widget scale for HiDPI screens; clamped to 0.5-4
 ```
 
 Missing keys keep their defaults; a malformed file falls back to defaults

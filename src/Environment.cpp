@@ -1,5 +1,6 @@
 #include "Environment.h"
 #include "MapFormat.h"
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -28,6 +29,7 @@ void Environment::setDefaults()
     m_hexagon = false;
     m_rows = 10;
     m_cols = 10;
+    m_ui_scale = 1.0f;
     calculateTileSizes();
 
     // initialize a default map
@@ -54,6 +56,19 @@ bool Environment::loadConfig(const std::string& config_path)
         m_hexagon = p["hexagon"].as<bool>(m_hexagon);
         m_rows = p["rows"].as<size_t>(m_rows);
         m_cols = p["cols"].as<size_t>(m_cols);
+
+        // Out-of-range scales are clamped (with a warning) rather than rejected.
+        const float ui_scale = p["ui_scale"].as<float>(m_ui_scale);
+        if (std::isnan(ui_scale)) {
+            std::cerr << "Warning: ui_scale is not a number; using 1.0." << std::endl;
+            m_ui_scale = 1.0f;
+        } else {
+            m_ui_scale = std::clamp(ui_scale, UI_SCALE_MIN, UI_SCALE_MAX);
+            if (m_ui_scale != ui_scale) {
+                std::cerr << "Warning: ui_scale " << ui_scale << " is outside [" << UI_SCALE_MIN
+                          << ", " << UI_SCALE_MAX << "]; using " << m_ui_scale << "." << std::endl;
+            }
+        }
 
         // Optional solver executable paths (absent => solver unavailable,
         // reported clearly when the user tries to run it).
