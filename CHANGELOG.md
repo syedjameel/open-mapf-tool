@@ -7,6 +7,13 @@ uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Docker image (`Dockerfile`, `docs/docker.md`): builds and tests OpenMAPF,
+  bundles the prebuilt hexagonal LaCAM solvers, and runs experiments
+  (`reproduce`, `smoke`, `run`), figures (`plot`), the tests, or the GUI
+  over X11.
+- `examples/benchmark-experiment`: a 96-run LaCAM/LaCAM3 benchmark on
+  square and hexagonal grids, with the bundled
+  `room-32-32-4-random-1.scen` scenario.
 - `ui_scale` in `env.yaml` (0.5–4): scales fonts and widget sizes for HiDPI
   screens and screen recordings.
 - `openmapf run --verbose`: prints each solver command line.

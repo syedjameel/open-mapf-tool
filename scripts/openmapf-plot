@@ -305,9 +305,11 @@ def plot_paper(df: pd.DataFrame, csv_path: str, out_dir: str, maps_dir) -> list:
                    bbox_to_anchor=(0.5, 0.0))
         fig.supxlabel(r"$\leftarrow$ runtime [s]", fontsize=8, y=0.30 / fig_h + 0.02)
         outs = []
+        # bbox "tight": the legend can be wider than the panels when the
+        # serif fallback font is wide (e.g. DejaVu Serif), never clip it
         for ext, kw in (("pdf", {}), ("png", {"dpi": 300})):
             path = os.path.join(out_dir, f"quality_vs_runtime.{ext}")
-            fig.savefig(path, **kw)
+            fig.savefig(path, bbox_inches="tight", pad_inches=0.03, **kw)
             outs.append(path)
         plt.close(fig)
     return outs

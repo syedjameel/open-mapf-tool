@@ -10,3 +10,6 @@
 # extra local build trees (build-*, e.g. FetchContent verification builds)
 /build-*
 /examples/smoke-experiment/out
+/examples/benchmark-experiment/out
+# solver archive dropped in for an offline docker build
+/docker/solvers/*.tar.gz

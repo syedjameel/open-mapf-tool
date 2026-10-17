@@ -63,7 +63,8 @@ jobs:
           build/openmapf --version
           build/openmapf run examples/smoke-experiment/experiment.yaml \
               --solvers examples/smoke-experiment/solvers.yaml
-          count=$(grep -c ',solved$' examples/smoke-experiment/out/results.csv)
+          count=$(awk -F, 'NR==1{for(i=1;i<=NF;i++) if($i=="status") s=i; next} $s=="solved"' \
+              examples/smoke-experiment/out/results.csv | wc -l)
           test "$count" -eq 24
           grep -q 'tool_version' examples/smoke-experiment/out/manifest.yaml
 
@@ -85,6 +86,21 @@ jobs:
           .venv/bin/python scripts/openmapf-plot examples/smoke-experiment/out/results.csv
           test -f examples/smoke-experiment/out/success_rate_vs_agents.png
           test -f examples/smoke-experiment/out/runtime_cactus.png
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build the image (tests run inside the build)
+        run: docker build --build-arg WITH_SOLVERS=0 -t openmapf .
+      - name: Smoke experiment in the container
+        run: |
+          mkdir -p out
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/out:/work" openmapf smoke
+          test -f out/smoke/out/results.csv
+          test -f out/smoke/out/success_rate_vs_agents.png
 
   format:
     runs-on: ubuntu-latest

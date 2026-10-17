@@ -1,0 +1,16 @@
+# Solver manifest used inside the OpenMAPF container: the prebuilt
+# hexagonal LaCAM solvers unpacked into /opt/openmapf-hex-lacam.
+# CBS is not bundled; mount your own build and pass --solvers to use it.
+solvers:
+  - key: lacam
+    name: LaCAM (hex)
+    executable: /opt/openmapf-hex-lacam/lacam1/main
+    grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]
+  - key: lacam2
+    name: LaCAM2 (hex)
+    executable: /opt/openmapf-hex-lacam/lacam2/main
+    grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]
+  - key: lacam3
+    name: LaCAM3 (hex)
+    executable: /opt/openmapf-hex-lacam/lacam3/main
+    grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]

@@ -70,6 +70,19 @@ then solve (*Algorithm* tab) or animate previously computed paths
 (*Paths* tab, samples in `paths/`). Full walkthrough:
 [docs/user-guide.md](docs/user-guide.md).
 
+### Or use Docker
+
+The container image bundles OpenMAPF and the prebuilt hexagonal LaCAM
+solvers. One command reproduces the benchmark experiment, figures included:
+
+```sh
+docker build -t openmapf .
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/out:/work" openmapf reproduce
+```
+
+Other commands (`smoke`, `run`, `plot`, `test`, `gui`) are described in
+[docs/docker.md](docs/docker.md).
+
 ### Install real solvers
 
 ```sh
@@ -125,6 +138,7 @@ script's `--help`).
 | Document | Contents |
 |---|---|
 | [docs/user-guide.md](docs/user-guide.md) | GUI walkthrough, CLI reference, configuration reference |
+| [docs/docker.md](docs/docker.md) | Container image: reproduce experiments, run specs, GUI over X11 |
 | [docs/experiments.md](docs/experiments.md) | Batch experiment spec, resume semantics, plotting |
 | [docs/file-formats.md](docs/file-formats.md) | Precise grammars: `.map`, `.scen`, path formats, results CSV |
 | [docs/extending.md](docs/extending.md) | Adding solvers and output parsers |

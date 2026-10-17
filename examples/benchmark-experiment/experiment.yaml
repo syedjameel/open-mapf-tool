@@ -1,0 +1,16 @@
+# Benchmark experiment: two LaCAM variants on two MovingAI maps, on square
+# and hexagonal (odd-r) grids. 2 solvers x 2 maps x 2 grids x 6 agent counts
+# x 2 seeds = 96 runs, 2 s each at most. Needs the hexagonal LaCAM solvers
+# (see docs/docker.md, or scripts/get-solvers.sh for a local build).
+name: benchmark
+output_dir: out          # relative to this file
+time_limit_s: 2
+seeds: 2
+agents: {from: 50, to: 300, step: 50}
+solvers: [lacam, lacam3]
+grids: [square, hex-oddr]
+instances:
+  - map: ../../maps/movingai/random-32-32-10.map
+    scen: ../../maps/movingai/random-32-32-10-random-1.scen
+  - map: ../../maps/movingai/room-32-32-4.map
+    scen: ../../maps/movingai/room-32-32-4-random-1.scen

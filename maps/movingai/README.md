@@ -21,6 +21,7 @@ Bundled sample scenarios (unmodified from the "random" suite):
 |---|---|---|
 | `empty-8-8-random-1.scen` | `empty-8-8.map` | 32 |
 | `random-32-32-10-random-1.scen` | `random-32-32-10.map` | 461 |
+| `room-32-32-4-random-1.scen` | `room-32-32-4.map` | 341 |
 
 Load them via *Map tab → Load Scenario* after loading the matching map, or
 fetch the full suites from the URL above.

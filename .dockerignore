@@ -1,0 +1,8 @@
+.git
+build
+build-*
+algorithms
+paths
+**/out
+imgui.ini
+*.log

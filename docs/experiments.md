@@ -73,7 +73,7 @@ All output lands in `output_dir`:
 - **`results.csv`** — one row per run, appended and flushed immediately
   after each run finishes, header written once. Schema (stable, documented
   in file-formats.md):
-  `solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s,solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version,status`
+  `solver,map,scenario,agents,grid_type,hex_layout,seed,time_limit_s,solved,runtime_s,solution_cost,makespan,hl_expanded,ll_expanded,tool_version,status,soc_lb,makespan_lb`
 - **`manifest.yaml`** — provenance: verbatim spec copy, tool version,
   per-solver executable path and `git describe` of its checkout (the solver
   binary is never executed just to probe a version), shuffle seed, worker
