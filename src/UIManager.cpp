@@ -1391,7 +1391,21 @@ void UIManager::renderSolversTab()
 void UIManager::renderResultsTab()
 {
     ImGui::Spacing();
-    if (m_cbsResults.solutionFound) {
+    const bool lacamSelected = m_selectedAlgo >= 1 && m_selectedAlgo <= 3;
+    if (lacamSelected && m_lacamResults.solutionFound) {
+        ImGui::Text("%s Results:", m_algoNames[m_selectedAlgo].c_str());
+        ImGui::Separator();
+        ImGui::Text("Sum of Costs: %d (LB: %d)", m_lacamResults.solutionCost,
+                    m_lacamResults.socLowerBound);
+        ImGui::Text("Makespan: %d (LB: %d)", m_lacamResults.makespan,
+                    m_lacamResults.makespanLowerBound);
+        ImGui::Text("Runtime: %.3f seconds", m_lacamResults.runtime);
+        ImGui::Text("Number of Agents: %d", m_lacamResults.numAgents);
+    } else if (lacamSelected && !m_lacamResults.errorMessage.empty()) {
+        ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f),
+                           "%s Error:", m_algoNames[m_selectedAlgo].c_str());
+        ImGui::TextWrapped("%s", m_lacamResults.errorMessage.c_str());
+    } else if (!lacamSelected && m_cbsResults.solutionFound) {
         ImGui::Text("CBS Results:");
         ImGui::Separator();
         ImGui::Text("Solution Cost: %d", m_cbsResults.solutionCost);
@@ -1402,7 +1416,7 @@ void UIManager::renderResultsTab()
         if (!m_cbsResults.pathsFile.empty()) {
             ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Paths loaded for visualization");
         }
-    } else if (!m_cbsResults.errorMessage.empty()) {
+    } else if (!lacamSelected && !m_cbsResults.errorMessage.empty()) {
         ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "CBS Error:");
         ImGui::TextWrapped("%s", m_cbsResults.errorMessage.c_str());
     } else {
