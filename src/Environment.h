@@ -64,7 +64,9 @@ public:
     bool loadConfig(const std::string& config_path);
     void loadMap(const std::string& map_path);
 
+    // Sizes tiles so the current rows x cols fit the configured window height.
+    void calculateTileSizes();
+
 private:
     void setDefaults();
-    void calculateTileSizes();
 };

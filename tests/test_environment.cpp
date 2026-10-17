@@ -23,6 +23,9 @@ TEST_CASE("loadMap parses a valid MovingAI map", "[environment]")
     CHECK(env.m_grid.get(1, 1) == 1);
     CHECK(env.m_grid.get(2, 1) == 1);
     CHECK(env.m_grid.get(3, 2) == 0);
+
+    // Tile sizes are recomputed for the loaded map (4 columns > 3 rows).
+    CHECK(env.m_square_tile_size == (env.m_height - UI_MARGIN) / 4.0f);
 }
 
 TEST_CASE("loadMap rejects bad input", "[environment]")

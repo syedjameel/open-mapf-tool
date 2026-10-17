@@ -103,3 +103,21 @@ void ViewportManager::reset()
     m_doubleTapDetected = false;
     m_touchDragging = false;
 }
+
+void ViewportManager::fitTo(const ImVec2& canvasSize, const ImVec2& worldMin,
+                            const ImVec2& worldMax, bool immediate)
+{
+    constexpr float FILL = 0.94f; // leave a thin border around the map
+    const float w = std::max(worldMax.x - worldMin.x, 1.0f);
+    const float h = std::max(worldMax.y - worldMin.y, 1.0f);
+    const float zoom =
+        std::clamp(FILL * std::min(canvasSize.x / w, canvasSize.y / h), ZOOM_MIN, ZOOM_MAX);
+
+    m_zoomTarget = zoom;
+    m_targetPanOffset = ImVec2(canvasSize.x * 0.5f - zoom * (worldMin.x + w * 0.5f),
+                               canvasSize.y * 0.5f - zoom * (worldMin.y + h * 0.5f));
+    if (immediate) {
+        m_zoom = m_zoomTarget;
+        m_panOffset = m_targetPanOffset;
+    }
+}

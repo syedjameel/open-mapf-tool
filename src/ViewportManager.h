@@ -15,6 +15,12 @@ public:
 
     void reset();
 
+    // Frames the world-space box [worldMin, worldMax] (as laid out at zoom 1,
+    // pan 0) centered in a canvas of canvasSize, with a small margin. The
+    // move is animated by update() unless immediate is set.
+    void fitTo(const ImVec2& canvasSize, const ImVec2& worldMin, const ImVec2& worldMax,
+               bool immediate);
+
 private:
     ImVec2 m_panOffset;
     ImVec2 m_targetPanOffset;

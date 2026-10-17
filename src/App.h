@@ -47,4 +47,5 @@ private:
     // Main loop methods
     void processFrame(GLFWwindow* window);
     void renderScene();
+    void fitViewToGrid(const ImVec2& canvasSize, bool immediate);
 };

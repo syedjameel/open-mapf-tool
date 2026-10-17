@@ -146,6 +146,7 @@ void Environment::loadMap(const std::string& map_path)
     // m_height = m_tile_size * m_rows + m_tile_size;
     // m_agent_size = m_tile_size / (2 * std::sqrt(2));
 
+    calculateTileSizes(); // tiles follow the new map size
     grid_loaded = true;
 }
 

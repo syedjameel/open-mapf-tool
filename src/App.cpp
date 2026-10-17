@@ -1,5 +1,9 @@
 #include "App.h"
+#include "GridRenderer.h"
 #include "Version.h"
+#include <algorithm>
+#include <cfloat>
+#include <cmath>
 #include <iostream>
 
 void ImGuiMapfApp::setupImGui(GLFWwindow* window, const char* glslVersion)
@@ -94,6 +98,10 @@ void ImGuiMapfApp::renderScene()
     // Handle viewport interactions (pan/zoom)
     ImGuiIO& io = ImGui::GetIO();
     m_viewportManager.handleInput(io, is_hovered, canvas_pos);
+    if (m_uiManager.consumeFitViewRequest()) {
+        // Jump on the first frames (initial grid), animate afterwards.
+        fitViewToGrid(canvas_size, ImGui::GetFrameCount() <= 2);
+    }
     m_viewportManager.update(io.DeltaTime);
 
     // Get current origin and zoom
@@ -114,6 +122,35 @@ void ImGuiMapfApp::renderScene()
     m_uiManager.renderSceneWindow(draw_list, canvas_pos, canvas_size, origin, zoom);
 
     ImGui::End();
+}
+
+void ImGuiMapfApp::fitViewToGrid(const ImVec2& canvasSize, bool immediate)
+{
+    const bool isHex = !m_env.m_square;
+    const float tile = isHex ? m_env.m_hex_tile_size : m_env.m_square_tile_size;
+    const HexGridType type = m_env.m_hex_grid_type;
+
+    // Cell half-extents around the centers returned by gridToWorld: pointy-top
+    // hexes (row layouts) are sqrt(3)*r wide and 2r tall, flat-top the reverse.
+    ImVec2 half(tile * 0.5f, tile * 0.5f);
+    if (isHex) {
+        const bool pointy = type == HexGridType::ODD_R || type == HexGridType::EVEN_R;
+        const float narrow = tile * 0.5f * std::sqrt(3.0f);
+        half = pointy ? ImVec2(narrow, tile) : ImVec2(tile, narrow);
+    }
+
+    ImVec2 lo(FLT_MAX, FLT_MAX), hi(-FLT_MAX, -FLT_MAX);
+    for (size_t y = 0; y < m_env.m_rows; ++y) {
+        for (size_t x = 0; x < m_env.m_cols; ++x) {
+            const ImVec2 c =
+                GridRenderer::gridToWorld(x, y, isHex, tile, ImVec2(0.0f, 0.0f), 1.0f, type);
+            lo = ImVec2(std::min(lo.x, c.x - half.x), std::min(lo.y, c.y - half.y));
+            hi = ImVec2(std::max(hi.x, c.x + half.x), std::max(hi.y, c.y + half.y));
+        }
+    }
+    if (lo.x <= hi.x) {
+        m_viewportManager.fitTo(canvasSize, lo, hi, immediate);
+    }
 }
 
 int ImGuiMapfApp::run()

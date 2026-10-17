@@ -53,6 +53,15 @@ public:
 
     bool isLacamFormat() const { return m_lacamFormat; }
 
+    // True once after the grid's size, type, or content changed in a way that
+    // should re-frame the Scene (map load, grid size/type edits).
+    bool consumeFitViewRequest()
+    {
+        const bool requested = m_fitViewRequested;
+        m_fitViewRequested = false;
+        return requested;
+    }
+
     // Agent interaction methods
     void handleAgentInteraction(const ImVec2& mousePos, const ImVec2& origin, float zoom,
                                 bool isHovered, bool isLeftClicked);
@@ -64,6 +73,7 @@ private:
     bool m_addRemoveObstacles = false;
     bool m_addRemoveAgents = false;
     bool m_lacamFormat = false;
+    bool m_fitViewRequested = true; // frame the initial grid
 
     // Dynamic agent management
     std::vector<Agent> m_dynamicAgents;
