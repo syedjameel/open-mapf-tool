@@ -22,7 +22,7 @@ build/openmapf run examples/smoke-experiment/experiment.yaml \
 scripts/openmapf-plot examples/smoke-experiment/out/results.csv
 ```
 
-24 runs execute in a few seconds; two PNG figures land next to the CSV.
+24 runs execute in a few seconds; three PNG figures land next to the CSV.
 For real experiments, install solvers (`scripts/get-solvers.sh` or the GUI
 *Solvers* tab) and write a spec as below.
 
@@ -98,6 +98,7 @@ scripts/openmapf-plot <output_dir>/results.csv [-o plots/]
 
 Needs Python 3 with pandas and matplotlib (no display required). Produces
 `success_rate_vs_agents.png` (mean `solved` per agent count, one line per
-solver × grid series) and `runtime_cactus.png` (solved runs sorted by
-runtime, log scale). Any tool that reads CSV works too — the schema is
+solver × grid series), `runtime_cactus.png` (solved runs sorted by
+runtime, log scale), and `solution_cost_vs_agents.png` (mean sum of costs
+of solved runs per agent count). Runs with status `skipped` are left out. Any tool that reads CSV works too — the schema is
 stable by contract.

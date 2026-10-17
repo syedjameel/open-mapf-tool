@@ -15,7 +15,7 @@ together per-paper scripts:
 1. **A batch experiment pipeline**: describe a benchmark matrix
    (solvers × maps × scenarios × agent counts × seeds) in one YAML file, run
    it headless with parallel workers, hard timeouts, and crash-safe resume,
-   and get a stable results CSV plus the two standard MAPF figures.
+   and get a stable results CSV plus standard MAPF figures.
 2. **An interactive GUI** (Dear ImGui + OpenGL): edit maps and obstacles,
    place agent start/goal pairs, load MovingAI benchmark scenarios, run
    solvers, and animate the solutions with pan/zoom and a scrub timeline.
@@ -53,7 +53,7 @@ scripts/openmapf-plot examples/smoke-experiment/out/results.csv   # needs pandas
 ```
 
 24 runs execute in seconds; `results.csv`, a provenance `manifest.yaml`, and
-two PNG figures land in `examples/smoke-experiment/out/`. See
+three PNG figures land in `examples/smoke-experiment/out/`. See
 [docs/experiments.md](docs/experiments.md) for the spec grammar, resume
 semantics, and timeout behavior.
 
@@ -89,7 +89,7 @@ script's `--help`).
   per-run hard-timeout kill, crash-safe append-only results CSV with
   resume-by-key, per-experiment provenance manifest.
 - **Results analysis**: stable, documented CSV schema; `scripts/openmapf-plot`
-  renders success-rate-vs-agents and runtime-cactus figures.
+  renders success-rate, runtime-cactus, and solution-cost figures.
 - **Square + four hexagonal grid layouts** (odd-r, even-r, odd-q, even-q).
 - **MovingAI-format I/O**: reads/writes `.map` (all terrain codes round-trip)
   and `.scen` v1 — the standard benchmark suites load directly, with

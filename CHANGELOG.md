@@ -10,6 +10,7 @@ uses [Semantic Versioning](https://semver.org/).
 - `ui_scale` in `env.yaml` (0.5–4): scales fonts and widget sizes for HiDPI
   screens and screen recordings.
 - `openmapf run --verbose`: prints each solver command line.
+- `openmapf-plot` also writes `solution_cost_vs_agents.png`.
 
 ### Changed
 - `openmapf run` prints one progress line per run; the solver command lines
@@ -20,6 +21,10 @@ uses [Semantic Versioning](https://semver.org/).
   the Scene and clears paths that belonged to the previous grid (a loaded
   map used to keep the previous grid's tile size and overflow the Scene).
 - Result lines showed `?` for check/cross glyphs the built-in font lacks.
+- `openmapf-plot` counted `skipped` runs (scenario too small for k agents)
+  as failures in the success-rate figure.
+- The Results tab only summarized CBS runs.
+- `-DOPENMAPF_FETCH_DEPS=ON` failed to configure with CMake 4.
 
 ## [0.1.0] — unreleased
 

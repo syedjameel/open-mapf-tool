@@ -9,6 +9,12 @@ Reads the stable results schema (docs/file-formats.md) produced by
                                figure)
   runtime_cactus.png           runtime cactus plot: solved instances sorted
                                by runtime, one line per solver x grid
+  solution_cost_vs_agents.png  mean sum of costs of solved runs vs. agent
+                               count, one line per solver x grid (written
+                               when the CSV has solution costs)
+
+Runs with status "skipped" (the scenario could not supply k agents, so no
+solver ran) are left out of every figure.
 
 Usage: openmapf-plot RESULTS_CSV [-o OUTPUT_DIR]
 
@@ -45,6 +51,10 @@ def load(path: str) -> pd.DataFrame:
                  "(expected the OpenMAPF results schema, see docs/file-formats.md)")
     if df.empty:
         sys.exit(f"error: {path} contains no data rows")
+    if "status" in df.columns:
+        df = df[df["status"] != "skipped"].copy()
+        if df.empty:
+            sys.exit(f"error: {path} contains only skipped runs")
     df["hex_layout"] = df["hex_layout"].fillna("")
     df["series"] = [series_label(s, g, h) for s, g, h in
                     zip(df["solver"], df["grid_type"], df["hex_layout"])]
@@ -87,6 +97,27 @@ def plot_runtime_cactus(df: pd.DataFrame, out_path: str) -> None:
     plt.close(fig)
 
 
+def plot_solution_cost(df: pd.DataFrame, out_path: str) -> bool:
+    if "solution_cost" not in df.columns:
+        return False
+    solved = df[(df["solved"] == 1) & (df["solution_cost"] > 0)]
+    if solved.empty:
+        return False
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    for series, group in sorted(solved.groupby("series")):
+        cost = group.groupby("agents")["solution_cost"].mean().sort_index()
+        ax.plot(cost.index.to_numpy(), cost.to_numpy(), marker="o", label=series)
+    ax.set_xlabel("agents")
+    ax.set_ylabel("sum of costs (mean over solved runs)")
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=8)
+    ax.set_title("Solution cost vs. number of agents")
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Standard MAPF figures from an OpenMAPF results CSV.")
@@ -103,12 +134,16 @@ def main() -> None:
     cactus_png = os.path.join(out_dir, "runtime_cactus.png")
     plot_success_rate(df, success_png)
     plot_runtime_cactus(df, cactus_png)
+    cost_png = os.path.join(out_dir, "solution_cost_vs_agents.png")
+    wrote_cost = plot_solution_cost(df, cost_png)
 
     n_solved = int((df["solved"] == 1).sum())
     print(f"{len(df)} runs ({n_solved} solved) across "
           f"{df['series'].nunique()} solver/grid series")
     print(f"wrote {success_png}")
     print(f"wrote {cactus_png}")
+    if wrote_cost:
+        print(f"wrote {cost_png}")
 
 
 if __name__ == "__main__":
