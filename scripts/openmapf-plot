@@ -13,15 +13,29 @@ Reads the stable results schema (docs/file-formats.md) produced by
                                count, one line per solver x grid (written
                                when the CSV has solution costs)
 
+With --style paper it instead writes a publication figure in the style of
+LaCAM/LG papers (serif type, PDF and PNG):
+
+  quality_vs_runtime.{pdf,png} one panel per map; x = mean runtime, y = mean
+                               sum of costs / lower bound (or sum of costs
+                               when the CSV has no soc_lb); colour = solver x
+                               grid, marker shape = agent count, band = +-1 sd
+                               over seeds, map thumbnail in the corner
+
 Runs with status "skipped" (the scenario could not supply k agents, so no
 solver ran) are left out of every figure.
 
-Usage: openmapf-plot RESULTS_CSV [-o OUTPUT_DIR]
+Usage: openmapf-plot RESULTS_CSV [-o OUTPUT_DIR] [--style standard|paper]
+                     [--maps DIR]
 
 Dependencies: Python 3, pandas, matplotlib (no seaborn or other extras).
 """
 import argparse
+import collections
+import glob
+import math
 import os
+import re
 import sys
 
 import matplotlib
@@ -118,17 +132,210 @@ def plot_solution_cost(df: pd.DataFrame, out_path: str) -> bool:
     return True
 
 
+# --- paper style --------------------------------------------------------------
+PAPER_COLORS = ["#008000", "#0000ff", "#ff6d00", "#9b59b6", "#00b8d4", "#ff66c4",
+                "#fdd017", "#d62728"]
+PAPER_SHAPES = ["X", "o", "^", "s", "*", "D", "v", "P"]
+TERRAIN = {"@": (0.13, 0.13, 0.13), "O": (0.13, 0.13, 0.13), "T": (0.36, 0.62, 0.33),
+           "W": (0.25, 0.45, 0.75), "S": (0.55, 0.50, 0.40)}
+
+
+def find_map_files(csv_path: str, extra_dir) -> dict:
+    """map name -> .map path, from the run manifest next to the CSV (the
+    spec's instance paths) and from --maps."""
+    found = {}
+    manifest = os.path.join(os.path.dirname(os.path.abspath(csv_path)), "manifest.yaml")
+    if os.path.exists(manifest):
+        text = open(manifest).read()
+        spec = re.search(r"^spec_file:\s*(.+)$", text, re.M)
+        base = os.path.dirname(spec.group(1).strip()) if spec else os.path.dirname(manifest)
+        for rel in re.findall(r"map:\s*([^\s,}]+\.map)", text):
+            path = rel if os.path.isabs(rel) else os.path.normpath(os.path.join(base, rel))
+            if os.path.exists(path):
+                found[os.path.splitext(os.path.basename(path))[0]] = path
+    if extra_dir:
+        for path in glob.glob(os.path.join(extra_dir, "**", "*.map"), recursive=True):
+            found.setdefault(os.path.splitext(os.path.basename(path))[0], path)
+    return found
+
+
+def load_map_runs(path: str):
+    lines = open(path).read().split("\n")
+    h = int(next(l for l in lines if l.startswith("height")).split()[1])
+    w = int(next(l for l in lines if l.startswith("width")).split()[1])
+    start = lines.index("map") + 1
+    rows = [r[:w] for r in lines[start:start + h]]
+    free = sum(1 for r in rows for c in r if c in ".G")
+    runs = []
+    for y, row in enumerate(rows):
+        x = 0
+        while x < len(row):
+            c = row[x]
+            if c not in TERRAIN:
+                x += 1
+                continue
+            x0 = x
+            while x < len(row) and row[x] == c:
+                x += 1
+            runs.append((x0, y, x - x0, TERRAIN[c]))
+    return w, h, free, runs
+
+
+def draw_thumbnail(ax, fig, fig_w, fig_h, path) -> None:
+    from matplotlib.collections import PatchCollection
+    from matplotlib.patches import Rectangle
+    w, h, _, runs = load_map_runs(path)
+    bb = ax.get_position()
+    pw, ph = bb.width * fig_w, bb.height * fig_h
+    side = 0.23 * ph
+    iax = ax.inset_axes([1 - side / pw - 0.025, 1 - side / ph - 0.03, side / pw, side / ph])
+    by_col = collections.defaultdict(list)
+    for x, y, ln, col in runs:
+        by_col[col].append(Rectangle((x, y), ln, 1))
+    for col, rects in by_col.items():
+        iax.add_collection(PatchCollection(rects, facecolor=col, edgecolor="none", lw=0))
+    mx = max(w, h)
+    iax.set_xlim(w / 2 - mx / 2, w / 2 + mx / 2)
+    iax.set_ylim(h / 2 + mx / 2, h / 2 - mx / 2)
+    iax.set_xticks([])
+    iax.set_yticks([])
+    iax.set_facecolor("white")
+    for sp in iax.spines.values():
+        sp.set_linewidth(0.35)
+        sp.set_color("#999999")
+
+
+def agent_key(ax, counts, x, ytop, dy=0.058, slant=0.27) -> None:
+    """Marker-shape key drawn as a small slanted trajectory, as in LG's Fig. 3."""
+    pts = [(x - k * slant * dy, ytop - k * dy) for k in range(len(counts))]
+    ax.plot([p[0] for p in pts], [p[1] for p in pts], "-", color="black", lw=0.5,
+            transform=ax.transAxes, zorder=6, clip_on=False)
+    for (lab, sh), (px, py) in zip(counts, pts):
+        ax.plot([px], [py], sh, ms=4.4 if sh == "*" else 2.6, mfc="black", mec="black",
+                mew=0.5, transform=ax.transAxes, zorder=7, clip_on=False)
+        ax.text(px + 0.045, py, lab, fontsize=4.4, va="center", ha="left",
+                transform=ax.transAxes, zorder=7)
+    ax.text(x + 0.025, ytop + 0.045, "agents", fontsize=4.4, va="bottom", ha="left",
+            transform=ax.transAxes, zorder=7)
+
+
+def plot_paper(df: pd.DataFrame, csv_path: str, out_dir: str, maps_dir) -> list:
+    from matplotlib.lines import Line2D
+    rc = {"font.family": "serif",
+          "font.serif": ["Times New Roman", "Liberation Serif", "Nimbus Roman", "DejaVu Serif"],
+          "pdf.fonttype": 42, "mathtext.fontset": "stix"}
+    solved = df[df["solved"] == 1].copy()
+    if solved.empty:
+        sys.exit("error: no solved runs to plot")
+    use_lb = "soc_lb" in solved.columns and (solved["soc_lb"] > 0).all() \
+        and "solution_cost" in solved.columns
+    if use_lb:
+        solved["quality"] = solved["solution_cost"] / solved["soc_lb"]
+        ylab = r"$\leftarrow$ sum of costs / LB"
+    else:
+        solved["quality"] = solved["solution_cost"]
+        ylab = r"$\leftarrow$ sum of costs"
+    series_all = sorted(solved["series"].unique())
+    color = {s: PAPER_COLORS[i % len(PAPER_COLORS)] for i, s in enumerate(series_all)}
+    maps = sorted(solved["map"].unique())
+    map_files = find_map_files(csv_path, maps_dir)
+
+    with plt.rc_context(rc):
+        ncol = min(4, len(maps))
+        nrow = math.ceil(len(maps) / ncol)
+        fig_w, fig_h = 1.75 * ncol + 0.35, 1.75 * nrow + 0.75
+        fig, axes = plt.subplots(nrow, ncol, figsize=(fig_w, fig_h), squeeze=False)
+        fig.subplots_adjust(left=0.42 / fig_w, right=1 - 0.08 / fig_w, top=1 - 0.32 / fig_h,
+                            bottom=0.62 / fig_h, hspace=0.45, wspace=0.30)
+        axf = axes.flatten()
+        for i, m in enumerate(maps):
+            ax = axf[i]
+            sub = solved[solved["map"] == m]
+            counts = sorted(sub["agents"].unique())[:len(PAPER_SHAPES)]
+            shape = {n: PAPER_SHAPES[k] for k, n in enumerate(counts)}
+            ys, xs_all = [], []
+            for s in series_all:
+                g = sub[(sub["series"] == s) & (sub["agents"].isin(counts))]
+                if g.empty:
+                    continue
+                agg = g.groupby("agents").agg(q=("quality", "mean"), sd=("quality", "std"),
+                                              rt=("runtime_s", "mean")).sort_index()
+                agg["sd"] = agg["sd"].fillna(0.0)
+                x, y, sd = agg["rt"].to_numpy(), agg["q"].to_numpy(), agg["sd"].to_numpy()
+                ax.fill_between(x, y - sd, y + sd, color=color[s], alpha=0.28, lw=0, zorder=1)
+                ax.plot(x, y, color=color[s], lw=0.7, zorder=3, alpha=0.9)
+                for xi, yi, n in zip(x, y, agg.index):
+                    sh = shape[n]
+                    ax.plot([xi], [yi], sh, ms=6.5 if sh == "*" else 3.6, mfc="white",
+                            mec=color[s], mew=0.9, zorder=4)
+                ys += list(y - sd) + list(y + sd)
+                xs_all += list(x)
+            title = m
+            if m in map_files:
+                w, h, free, _ = load_map_runs(map_files[m])
+                title = f"{m}\n{w}x{h} ({free:,})"
+            ax.set_title(title, fontsize=6.4, pad=2.5, style="italic", linespacing=1.15)
+            ax.tick_params(labelsize=5.8, length=1.8, pad=1.0)
+            ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(4))
+            ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(4))
+            for sp in ax.spines.values():
+                sp.set_visible(True)
+                sp.set_linewidth(0.6)
+                sp.set_color("black")
+            ax.grid(True, lw=0.25, color="#dddddd", zorder=0)
+            ax.set_axisbelow(True)
+            if ys:
+                ylo, yhi = min(ys), max(ys)
+                yr = (yhi - ylo) or 1.0
+                ax.set_ylim(ylo - 0.08 * yr, yhi + 0.46 * yr)
+                xlo, xhi = min(xs_all), max(xs_all)
+                xr = (xhi - xlo) or max(xhi, 1e-3)
+                ax.set_xlim(xlo - 0.08 * xr, xhi + 0.10 * xr)
+            if i % ncol == 0:
+                ax.set_ylabel(ylab, fontsize=6.6)
+            if i == 0:
+                agent_key(ax, [(str(n), shape[n]) for n in sorted(shape, reverse=True)], 0.34, 0.88)
+            if m in map_files:
+                draw_thumbnail(ax, fig, fig_w, fig_h, map_files[m])
+        for j in range(len(maps), nrow * ncol):
+            axf[j].axis("off")
+        handles = [Line2D([], [], color=color[s], lw=2.6, label=s) for s in series_all]
+        fig.legend(handles=handles, loc="lower center", ncol=min(4, len(handles)), frameon=False,
+                   fontsize=6.8, handlelength=1.7, columnspacing=1.2,
+                   bbox_to_anchor=(0.5, 0.0))
+        fig.supxlabel(r"$\leftarrow$ runtime [s]", fontsize=8, y=0.30 / fig_h + 0.02)
+        outs = []
+        for ext, kw in (("pdf", {}), ("png", {"dpi": 300})):
+            path = os.path.join(out_dir, f"quality_vs_runtime.{ext}")
+            fig.savefig(path, **kw)
+            outs.append(path)
+        plt.close(fig)
+    return outs
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Standard MAPF figures from an OpenMAPF results CSV.")
     parser.add_argument("results_csv", help="results.csv written by 'openmapf run'")
     parser.add_argument("-o", "--output-dir", default=None,
                         help="directory for the PNGs (default: next to the CSV)")
+    parser.add_argument("--style", choices=["standard", "paper"], default="standard",
+                        help="standard figures (default) or one publication figure")
+    parser.add_argument("--maps", default=None,
+                        help="directory searched for .map files (paper style thumbnails)")
     args = parser.parse_args()
 
     df = load(args.results_csv)
     out_dir = args.output_dir or os.path.dirname(os.path.abspath(args.results_csv))
     os.makedirs(out_dir, exist_ok=True)
+
+    if args.style == "paper":
+        n_solved = int((df["solved"] == 1).sum())
+        print(f"{len(df)} runs ({n_solved} solved) across "
+              f"{df['series'].nunique()} solver/grid series")
+        for path in plot_paper(df, args.results_csv, out_dir, args.maps):
+            print(f"wrote {path}")
+        return
 
     success_png = os.path.join(out_dir, "success_rate_vs_agents.png")
     cactus_png = os.path.join(out_dir, "runtime_cactus.png")

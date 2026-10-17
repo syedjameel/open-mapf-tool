@@ -100,5 +100,12 @@ Needs Python 3 with pandas and matplotlib (no display required). Produces
 `success_rate_vs_agents.png` (mean `solved` per agent count, one line per
 solver × grid series), `runtime_cactus.png` (solved runs sorted by
 runtime, log scale), and `solution_cost_vs_agents.png` (mean sum of costs
-of solved runs per agent count). Runs with status `skipped` are left out. Any tool that reads CSV works too — the schema is
+of solved runs per agent count). Runs with status `skipped` are left out.
+
+For papers, `--style paper` writes one figure instead,
+`quality_vs_runtime.pdf` and `.png`, in the style of the LaCAM/LG papers:
+one panel per map with x = mean runtime and y = mean sum of costs / lower
+bound (sum of costs when the CSV has no `soc_lb`), colour = solver × grid,
+marker shape = agent count, a ±1 sd band over seeds, and a thumbnail of the
+map (found through the run's `manifest.yaml`, or `--maps DIR`). Any tool that reads CSV works too — the schema is
 stable by contract.

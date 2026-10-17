@@ -11,6 +11,8 @@ uses [Semantic Versioning](https://semver.org/).
   screens and screen recordings.
 - `openmapf run --verbose`: prints each solver command line.
 - `openmapf-plot` also writes `solution_cost_vs_agents.png`.
+- `openmapf-plot --style paper`: quality-vs-runtime publication figure
+  (per-map panels, map thumbnails, serif type, PDF + PNG).
 - Results CSV: `soc_lb` and `makespan_lb` columns (solver-reported lower
   bounds) appended to the schema; appending to an older file keeps its
   narrower columns.

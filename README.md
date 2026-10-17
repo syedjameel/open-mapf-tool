@@ -89,7 +89,8 @@ script's `--help`).
   per-run hard-timeout kill, crash-safe append-only results CSV with
   resume-by-key, per-experiment provenance manifest.
 - **Results analysis**: stable, documented CSV schema; `scripts/openmapf-plot`
-  renders success-rate, runtime-cactus, and solution-cost figures.
+  renders success-rate, runtime-cactus, and solution-cost figures, or one
+  publication figure (`--style paper`, PDF + PNG).
 - **Square + four hexagonal grid layouts** (odd-r, even-r, odd-q, even-q).
 - **MovingAI-format I/O**: reads/writes `.map` (all terrain codes round-trip)
   and `.scen` v1 — the standard benchmark suites load directly, with
