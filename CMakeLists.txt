@@ -37,7 +37,12 @@ if(OPENMAPF_FETCH_DEPS)
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
         GIT_TAG        0.8.0
     )
+    # yaml-cpp 0.8.0 declares cmake_minimum_required(3.4), which CMake >= 4.0
+    # rejects; let it configure with 3.5 policies (ignored by older CMake).
+    set(_openmapf_saved_policy_min "${CMAKE_POLICY_VERSION_MINIMUM}")
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
     FetchContent_MakeAvailable(yaml-cpp)
+    set(CMAKE_POLICY_VERSION_MINIMUM "${_openmapf_saved_policy_min}")
     set(OPENMAPF_YAMLCPP_TARGET yaml-cpp::yaml-cpp)
 else()
     find_package(yaml-cpp REQUIRED)
