@@ -246,9 +246,10 @@ bool LacamDriverBase::convertLacamPaths(std::istream& inFile, std::ostream& outF
         outFile << "\n";
     }
 
-    // Debug output
-    std::cout << "[LaCAM] Converted " << agentPaths.size()
-              << " agent paths, max timestep: " << maxTimeStep << std::endl;
+    if (ExternalSolverDriver::commandLogging()) {
+        std::cout << "[LaCAM] Converted " << agentPaths.size()
+                  << " agent paths, max timestep: " << maxTimeStep << std::endl;
+    }
 
     return true;
 }

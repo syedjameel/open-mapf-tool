@@ -165,8 +165,10 @@ SolverOutcome ExternalSolverDriver::execute(const std::vector<Agent>& agents,
         return outcome;
     }
 
-    std::cout << "[" << m_displayName << "] Executing: " << ProcessRunner::joinArgv(inv.argv)
-              << std::endl;
+    if (commandLogging()) {
+        std::cout << "[" << m_displayName << "] Executing: " << ProcessRunner::joinArgv(inv.argv)
+                  << std::endl;
+    }
 
     const auto startTime = std::chrono::steady_clock::now();
     ProcessRunner::Result run = m_runner.run(inv.argv);

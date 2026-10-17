@@ -8,7 +8,7 @@ tab is a thin front-end over the same runner; the CLI is the primary
 interface:
 
 ```sh
-openmapf run experiment.yaml [--jobs N] [--resume] [--dry-run] [--solvers PATH]
+openmapf run experiment.yaml [--jobs N] [--resume] [--dry-run] [--verbose] [--solvers PATH]
 ```
 
 ## Quick start (no solvers required)

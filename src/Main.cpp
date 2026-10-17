@@ -8,6 +8,7 @@
 #include "ConfigLocator.h"
 #include "ExperimentRunner.h"
 #include "ExperimentSpec.h"
+#include "ExternalSolverDriver.h"
 #include "SolverManifest.h"
 #include "Version.h"
 
@@ -54,6 +55,7 @@ void printRunUsage(const char* argv0)
               << "  --jobs <N>        Parallel workers (default: min(4, cores/2))\n"
               << "  --resume          Skip runs already complete in results.csv\n"
               << "  --dry-run         Print matrix size and the first rows, then exit\n"
+              << "  --verbose         Also print each solver command line\n"
               << "  --solvers <path>  Solver manifest to use (default: discovered\n"
               << "                    solvers.yaml; $OPENMAPF_SOLVERS also works)\n"
               << "  -h, --help        Print this help and exit\n\n"
@@ -69,6 +71,7 @@ int runCommand(int argc, char** argv)
     RunnerOptions opts;
     opts.toolVersion = OPENMAPF_VERSION;
     bool dryRun = false;
+    bool verbose = false;
 
     for (int i = 2; i < argc; ++i) {
         const char* arg = argv[i];
@@ -82,6 +85,10 @@ int runCommand(int argc, char** argv)
         }
         if (std::strcmp(arg, "--dry-run") == 0) {
             dryRun = true;
+            continue;
+        }
+        if (std::strcmp(arg, "--verbose") == 0) {
+            verbose = true;
             continue;
         }
         if (std::strcmp(arg, "--jobs") == 0) {
@@ -188,6 +195,9 @@ int runCommand(int argc, char** argv)
         }
         return 2;
     }
+
+    // One progress line per run; solver commands only with --verbose
+    ExternalSolverDriver::setCommandLogging(verbose);
 
     std::cout << "Running " << runner.pendingTasks().size() << " runs with "
               << "jobs=" << (opts.jobs > 0 ? opts.jobs : ExperimentRunner::defaultJobs()) << " -> "

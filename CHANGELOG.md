@@ -9,6 +9,17 @@ uses [Semantic Versioning](https://semver.org/).
 ### Added
 - `ui_scale` in `env.yaml` (0.5–4): scales fonts and widget sizes for HiDPI
   screens and screen recordings.
+- `openmapf run --verbose`: prints each solver command line.
+
+### Changed
+- `openmapf run` prints one progress line per run; the solver command lines
+  and path-conversion notes moved behind `--verbose`.
+
+### Fixed
+- Loading a map, resizing the grid, or switching square/hex now re-frames
+  the Scene and clears paths that belonged to the previous grid (a loaded
+  map used to keep the previous grid's tile size and overflow the Scene).
+- Result lines showed `?` for check/cross glyphs the built-in font lacks.
 
 ## [0.1.0] — unreleased
 

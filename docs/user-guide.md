@@ -124,6 +124,7 @@ GLFW error message.
 | `--jobs <N>` | parallel workers (default `min(4, cores/2)`) |
 | `--resume` | skip runs already complete in `results.csv` |
 | `--dry-run` | print matrix size, the first shuffled runs, and solver-config notes; no execution |
+| `--verbose` | also print each solver command line (default: one progress line per run) |
 | `--solvers <path>` | solver manifest to use instead of discovery |
 | `-h`, `--help` | run usage and exit codes |
 

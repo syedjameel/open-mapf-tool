@@ -57,6 +57,12 @@ public:
 
     bool isRunning() const { return m_isRunning.load(); }
 
+    // Process-wide switch for the per-run diagnostic lines on stdout (the
+    // full solver command, parser summaries). On by default; the batch
+    // runner turns it off unless 'openmapf run --verbose' is given.
+    static void setCommandLogging(bool enabled) { s_commandLogging.store(enabled); }
+    static bool commandLogging() { return s_commandLogging.load(); }
+
     // Sets the cancel flag and kills the child process, if any. A cancelled
     // run does not invoke the outcome callback.
     void cancel();
@@ -84,4 +90,6 @@ private:
     std::atomic<bool> m_isRunning{false};
     std::atomic<bool> m_shouldCancel{false};
     std::thread m_solverThread;
+
+    static inline std::atomic<bool> s_commandLogging{true};
 };
