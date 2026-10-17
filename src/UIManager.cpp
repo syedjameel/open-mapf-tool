@@ -226,8 +226,9 @@ void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_po
         }
     }
 
-    // Draw dynamic agents (from Add/Remove Agents mode)
-    if (m_addRemoveAgents) {
+    // Draw placed agents' starts/goals while editing them, and whenever no
+    // solution is loaded (e.g. after the grid changed and cleared the paths)
+    if (m_addRemoveAgents || m_pathManager.getPaths().empty()) {
         renderDynamicAgents(draw_list, origin, zoom);
     }
 
