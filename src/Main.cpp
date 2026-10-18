@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <utility>
 
 #include "App.h"
 #include "ConfigLocator.h"
@@ -23,6 +24,9 @@ void printUsage(const char* argv0)
               << "                                          headless batch experiments\n\n"
               << "Options:\n"
               << "  --config <path>   Use this config file (YAML)\n"
+              << "  --map <file>      Open this MovingAI .map at startup\n"
+              << "  --grid <type>     square, hex-oddr, hex-evenr, hex-oddq or hex-evenq\n"
+              << "  --plan <file>     Load and play the solution in a LaCAM output file (-o)\n"
               << "  --version         Print version and exit\n"
               << "  -h, --help        Print this help and exit\n\n"
               << "Run options ('" << argv0 << " run --help' for details):\n"
@@ -224,6 +228,7 @@ int main(int argc, char** argv)
     }
 
     std::string cliConfig;
+    ImGuiMapfApp::StartupFiles startup;
 
     for (int i = 1; i < argc; ++i) {
         const char* arg = argv[i];
@@ -241,6 +246,28 @@ int main(int argc, char** argv)
                 return 2;
             }
             cliConfig = argv[++i];
+            continue;
+        }
+        if (std::strcmp(arg, "--map") == 0 || std::strcmp(arg, "--grid") == 0 ||
+            std::strcmp(arg, "--plan") == 0) {
+            if (i + 1 >= argc) {
+                std::cerr << "Error: " << arg << " requires an argument" << std::endl;
+                return 2;
+            }
+            const std::string value = argv[++i];
+            if (std::strcmp(arg, "--grid") == 0) {
+                if (value != "square" && value != "hex-oddr" && value != "hex-evenr" &&
+                    value != "hex-oddq" && value != "hex-evenq") {
+                    std::cerr << "Error: unknown grid type '" << value << "'" << std::endl;
+                    return 2;
+                }
+                startup.grid = value;
+            } else if (!std::filesystem::is_regular_file(value)) {
+                std::cerr << "Error: file not found: " << value << std::endl;
+                return 1;
+            } else {
+                (std::strcmp(arg, "--map") == 0 ? startup.map : startup.plan) = value;
+            }
             continue;
         }
         std::cerr << "Error: unknown argument '" << arg << "'\n" << std::endl;
@@ -279,5 +306,6 @@ int main(int argc, char** argv)
     }
 
     ImGuiMapfApp app(configPath.value_or(""), solversPath.value_or(""));
+    app.setStartupFiles(std::move(startup));
     return app.run();
 }

@@ -27,6 +27,17 @@ public:
         }
     }
 
+    // Files to open when the window appears (all optional): a MovingAI map,
+    // a grid type ("square", "hex-oddr", ...), and a LaCAM output file whose
+    // solution is loaded and played.
+    struct StartupFiles
+    {
+        std::string map;
+        std::string grid;
+        std::string plan;
+    };
+    void setStartupFiles(StartupFiles files) { m_startup = std::move(files); }
+
     // Returns a process exit code (0 on success).
     int run();
 
@@ -40,11 +51,16 @@ private:
     ViewportManager m_viewportManager;
     GridInteractionHandler m_gridInteractionHandler{m_env};
     ImVec2 m_lastCanvasSize{0.0f, 0.0f};
-    double m_lastWorkMs = 0.0; // time spent building and submitting the last frame (before swap)
+    StartupFiles m_startup;
+    bool m_layoutChecked = false; // first-start dock layout applied (or a saved one found)
+    double m_lastWorkMs = 0.0;    // time spent building and submitting the last frame (before swap)
 
     // Setup methods
     void setupImGui(GLFWwindow* window, const char* glslVersion);
     void cleanupImGui(GLFWwindow* window);
+
+    // Opens m_startup; false (with a message on stderr) if a file cannot be used
+    bool openStartupFiles();
 
     // Main loop methods
     void processFrame(GLFWwindow* window);

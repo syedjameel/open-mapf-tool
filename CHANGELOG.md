@@ -7,6 +7,8 @@ uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- GUI startup options `--map`, `--grid` and `--plan` open a map, set the grid
+  type and play a LaCAM solution without going through the menus.
 - `OPENMAPF_FRAME_LOG=<file.csv>` writes per-frame GUI timings (frame time,
   time before the swap, grid size, agent count, animation state);
   `OPENMAPF_VSYNC=0` turns vsync off for such measurements.
@@ -35,6 +37,12 @@ uses [Semantic Versioning](https://semver.org/).
   and path-conversion notes moved behind `--verbose`.
 
 ### Fixed
+- The GUI aborted (or drew garbage in Release builds) when one window held
+  more than 65,535 vertices, e.g. 400 agents with their paths on
+  warehouse-10-20-10-2-1: Dear ImGui now uses 32-bit draw indices.
+- On first start (no saved `imgui.ini`, always the case in Docker) the Scene
+  window was hidden behind the Control Panel; they are now docked side by
+  side.
 - Loading a map, resizing the grid, or switching square/hex now re-frames
   the Scene and clears paths that belonged to the previous grid (a loaded
   map used to keep the previous grid's tile size and overflow the Scene).

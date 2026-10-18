@@ -1,6 +1,8 @@
 #include "App.h"
 #include "GridRenderer.h"
+#include "SolutionParsers.h"
 #include "Version.h"
+#include "imgui_internal.h"
 #include "implot.h"
 #include <algorithm>
 #include <cfloat>
@@ -8,8 +10,10 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <unistd.h>
 
 namespace {
 // Grid name as used in experiment specs and results.csv
@@ -31,6 +35,50 @@ const char* gridName(const Environment& env)
     return "hex";
 }
 } // namespace
+
+bool ImGuiMapfApp::openStartupFiles()
+{
+    try {
+        if (!m_startup.map.empty()) {
+            m_env.loadMap(m_startup.map);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error loading map: " << e.what() << std::endl;
+        return false;
+    }
+    const std::string& grid = m_startup.grid;
+    if (!grid.empty()) {
+        m_env.m_square = grid == "square";
+        m_env.m_hexagon = !m_env.m_square;
+        if (grid == "hex-oddr")
+            m_env.m_hex_grid_type = HexGridType::ODD_R;
+        else if (grid == "hex-evenr")
+            m_env.m_hex_grid_type = HexGridType::EVEN_R;
+        else if (grid == "hex-oddq")
+            m_env.m_hex_grid_type = HexGridType::ODD_Q;
+        else if (grid == "hex-evenq")
+            m_env.m_hex_grid_type = HexGridType::EVEN_Q;
+    }
+    if (!m_startup.plan.empty()) {
+        // Same conversion the GUI applies after a LaCAM run
+        const auto pathsFile = std::filesystem::temp_directory_path() /
+                               ("openmapf-plan-" + std::to_string(::getpid()) + ".txt");
+        SolverOutcome outcome;
+        LacamOutputParser("LaCAM").parse(m_startup.plan, pathsFile.string(), outcome);
+        if (!outcome.errorMessage.empty() || outcome.pathsFile.empty()) {
+            std::cerr << "Error loading plan '" << m_startup.plan << "': "
+                      << (outcome.errorMessage.empty() ? "no solution in the file"
+                                                       : outcome.errorMessage)
+                      << std::endl;
+            return false;
+        }
+        m_pathManager.loadPaths(outcome.pathsFile, true);
+        std::filesystem::remove(outcome.pathsFile);
+        m_animController.start(m_pathManager.getPaths());
+        m_animController.setAnimating(true);
+    }
+    return true;
+}
 
 void ImGuiMapfApp::setupImGui(GLFWwindow* window, const char* glslVersion)
 {
@@ -88,7 +136,24 @@ void ImGuiMapfApp::processFrame(GLFWwindow* window)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::DockSpaceOverViewport();
+    const ImGuiID dockspace = ImGui::DockSpaceOverViewport();
+    if (!m_layoutChecked) {
+        // First start (no saved imgui.ini layout): dock the Scene on the left and
+        // the Control Panel on the right instead of leaving them stacked.
+        m_layoutChecked = true;
+        const ImGuiDockNode* node = ImGui::DockBuilderGetNode(dockspace);
+        if (node == nullptr || !node->IsSplitNode()) {
+            ImGui::DockBuilderRemoveNode(dockspace);
+            ImGui::DockBuilderAddNode(dockspace, ImGuiDockNodeFlags_DockSpace);
+            ImGui::DockBuilderSetNodeSize(dockspace, ImGui::GetMainViewport()->WorkSize);
+            ImGuiID left = 0;
+            ImGuiID right = 0;
+            ImGui::DockBuilderSplitNode(dockspace, ImGuiDir_Right, 0.3f, &right, &left);
+            ImGui::DockBuilderDockWindow("Control Panel", right);
+            ImGui::DockBuilderDockWindow("Scene", left);
+            ImGui::DockBuilderFinish(dockspace);
+        }
+    }
 
     // Apply solver results queued by solver threads (GUI thread only)
     m_uiManager.processPendingResults();
@@ -241,10 +306,19 @@ int ImGuiMapfApp::run()
             std::cerr << "Warning: cannot write the frame log '" << logPath << "'" << std::endl;
         } else {
             frameLog << "t_s,frame_ms,work_ms,rows,cols,grid,agents,animating,time_step\n";
+            const auto* renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+            std::cerr << "Frame log: " << logPath
+                      << " (OpenGL renderer: " << (renderer ? renderer : "unknown") << ")"
+                      << std::endl;
         }
     }
+    // The first logged frame also includes opening the startup files
     const auto start = std::chrono::steady_clock::now();
     auto last = start;
+    if (!openStartupFiles()) {
+        cleanupImGui(window);
+        return 1;
+    }
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();

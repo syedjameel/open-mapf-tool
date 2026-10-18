@@ -117,6 +117,9 @@ openmapf run <experiment.yaml> [options]  headless batch experiments
 | Option | Meaning |
 |---|---|
 | `--config <path>` | use this `env.yaml`; a missing file is a hard error (exit 1) |
+| `--map <file>` | open this MovingAI `.map` at startup |
+| `--grid <type>` | `square`, `hex-oddr`, `hex-evenr`, `hex-oddq` or `hex-evenq` |
+| `--plan <file>` | load the solution in a LaCAM output file (`-o`) and play it |
 | `--version` | print `openmapf <version>` and exit 0 |
 | `-h`, `--help` | usage, config discovery order, run options; exit 0 |
 
