@@ -7,6 +7,9 @@ uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `OPENMAPF_FRAME_LOG=<file.csv>` writes per-frame GUI timings (frame time,
+  time before the swap, grid size, agent count, animation state);
+  `OPENMAPF_VSYNC=0` turns vsync off for such measurements.
 - Docker image (`Dockerfile`, `docs/docker.md`): builds and tests OpenMAPF,
   bundles the prebuilt hexagonal LaCAM solvers, and runs experiments
   (`reproduce`, `smoke`, `run`), figures (`plot`), the tests, or the GUI

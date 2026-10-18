@@ -145,6 +145,8 @@ solver-configuration errors, or refusing to append to an existing
 |---|---|
 | `OPENMAPF_CONFIG` | path to `env.yaml` (checked after `--config`) |
 | `OPENMAPF_SOLVERS` | path to `solvers.yaml` (checked after `--solvers`) |
+| `OPENMAPF_FRAME_LOG` | GUI only: write one CSV row per frame to this file (`t_s, frame_ms, work_ms, rows, cols, grid, agents, animating, time_step`; `work_ms` is the time before the buffer swap) |
+| `OPENMAPF_VSYNC` | GUI only: `0` turns vsync off, so frames render as fast as possible (for performance measurements) |
 
 ## Configuration reference
 

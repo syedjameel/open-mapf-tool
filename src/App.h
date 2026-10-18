@@ -40,6 +40,7 @@ private:
     ViewportManager m_viewportManager;
     GridInteractionHandler m_gridInteractionHandler{m_env};
     ImVec2 m_lastCanvasSize{0.0f, 0.0f};
+    double m_lastWorkMs = 0.0; // time spent building and submitting the last frame (before swap)
 
     // Setup methods
     void setupImGui(GLFWwindow* window, const char* glslVersion);

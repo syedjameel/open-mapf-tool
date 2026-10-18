@@ -4,8 +4,33 @@
 #include "implot.h"
 #include <algorithm>
 #include <cfloat>
+#include <chrono>
 #include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
 #include <iostream>
+
+namespace {
+// Grid name as used in experiment specs and results.csv
+const char* gridName(const Environment& env)
+{
+    if (!env.m_hexagon) {
+        return "square";
+    }
+    switch (env.m_hex_grid_type) {
+    case HexGridType::ODD_R:
+        return "hex-oddr";
+    case HexGridType::EVEN_R:
+        return "hex-evenr";
+    case HexGridType::ODD_Q:
+        return "hex-oddq";
+    case HexGridType::EVEN_Q:
+        return "hex-evenq";
+    }
+    return "hex";
+}
+} // namespace
 
 void ImGuiMapfApp::setupImGui(GLFWwindow* window, const char* glslVersion)
 {
@@ -55,6 +80,7 @@ void ImGuiMapfApp::cleanupImGui(GLFWwindow* window)
 
 void ImGuiMapfApp::processFrame(GLFWwindow* window)
 {
+    const auto workStart = std::chrono::steady_clock::now();
     ImGuiIO& io = ImGui::GetIO();
 
     // Start the ImGui frame
@@ -81,6 +107,9 @@ void ImGuiMapfApp::processFrame(GLFWwindow* window)
     glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    m_lastWorkMs =
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - workStart)
+            .count();
     glfwSwapBuffers(window);
 }
 
@@ -197,13 +226,39 @@ int ImGuiMapfApp::run()
         return 1;
     }
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    // OPENMAPF_VSYNC=0 renders as fast as possible (for performance measurements)
+    const char* vsync = std::getenv("OPENMAPF_VSYNC");
+    glfwSwapInterval(vsync != nullptr && std::strcmp(vsync, "0") == 0 ? 0 : 1);
 
     setupImGui(window, glsl_version);
+
+    // OPENMAPF_FRAME_LOG=<file.csv>: one row per frame, for measuring GUI performance
+    std::ofstream frameLog;
+    if (const char* logPath = std::getenv("OPENMAPF_FRAME_LOG");
+        logPath != nullptr && *logPath != '\0') {
+        frameLog.open(logPath);
+        if (!frameLog) {
+            std::cerr << "Warning: cannot write the frame log '" << logPath << "'" << std::endl;
+        } else {
+            frameLog << "t_s,frame_ms,work_ms,rows,cols,grid,agents,animating,time_step\n";
+        }
+    }
+    const auto start = std::chrono::steady_clock::now();
+    auto last = start;
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         processFrame(window);
+        if (frameLog.is_open()) {
+            const auto now = std::chrono::steady_clock::now();
+            frameLog << std::chrono::duration<double>(now - start).count() << ','
+                     << std::chrono::duration<double, std::milli>(now - last).count() << ','
+                     << m_lastWorkMs << ',' << m_env.m_rows << ',' << m_env.m_cols << ','
+                     << gridName(m_env) << ',' << m_pathManager.getPaths().size() << ','
+                     << (m_animController.isAnimating() ? 1 : 0) << ','
+                     << m_animController.getCurrentTimeStep() << '\n';
+            last = now;
+        }
     }
 
     cleanupImGui(window);
