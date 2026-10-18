@@ -330,7 +330,8 @@ int ImGuiMapfApp::run()
                      << m_lastWorkMs << ',' << m_env.m_rows << ',' << m_env.m_cols << ','
                      << gridName(m_env) << ',' << m_pathManager.getPaths().size() << ','
                      << (m_animController.isAnimating() ? 1 : 0) << ','
-                     << m_animController.getCurrentTimeStep() << '\n';
+                     << m_animController.getCurrentTimeStep() << '\n'
+                     << std::flush; // keep every row if the process is stopped by a signal
             last = now;
         }
     }
