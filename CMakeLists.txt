@@ -120,6 +120,11 @@ target_link_libraries(imgui PUBLIC
     OpenGL::GL
 )
 
+# 32-bit draw indices: a large map or many agents put more than 65,535
+# vertices into one window's draw list, which 16-bit indices cannot address
+# with the OpenGL 3.0 context we create (no ImGuiBackendFlags_RendererHasVtxOffset).
+target_compile_definitions(imgui PUBLIC "ImDrawIdx=unsigned int")
+
 # ---------------------------------------------------------------------------
 # openmapf: the GUI executable
 # ---------------------------------------------------------------------------
