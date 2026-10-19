@@ -7,6 +7,10 @@ uses [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- The complete MovingAI MAPF scenario suites for every bundled map:
+  `maps/movingai/scen-random/` and `maps/movingai/scen-even/` (25 each per
+  map, unmodified), plus `room-64-64-8-random-1.scen` and
+  `warehouse-10-20-10-2-1-random-1.scen` next to the maps.
 - GUI startup options `--map`, `--grid` and `--plan` open a map, set the grid
   type and play a LaCAM solution without going through the menus.
 - `OPENMAPF_FRAME_LOG=<file.csv>` writes per-frame GUI timings (frame time,
