@@ -43,6 +43,9 @@ uses [Semantic Versioning](https://semver.org/).
   and path-conversion notes moved behind `--verbose`.
 
 ### Fixed
+- The CBS driver passes `--hexGrid`/`--gridConfig` only on hexagonal grids,
+  and `--cluster_heuristics` only when it is not the default, so the
+  unmodified upstream CBSH2-RTC runs on square grids.
 - The GUI aborted (or drew garbage in Release builds) when one window held
   more than 65,535 vertices, e.g. 400 agents with their paths on
   warehouse-10-20-10-2-1: Dear ImGui now uses 32-bit draw indices.
@@ -83,7 +86,7 @@ First publication-ready release, superseding the pre-hardening prototype
   solvers; discovery via CLI flag → env var → XDG → exe-relative paths.
 - **CLI**: `--config`, `--version`, `--help`; `run` subcommand with
   `--jobs/--resume/--dry-run/--solvers` and documented exit codes.
-- **Quality infrastructure**: 74 headless test cases (681 assertions,
+- **Quality infrastructure**: 75 headless test cases (691 assertions,
   Catch2 via FetchContent) incl. fixture-based parser tests and
   fake-solver integration tests; GitHub Actions CI (Linux gcc/clang +
   best-effort macOS, integration steps, clang-format check, ASan/UBSan

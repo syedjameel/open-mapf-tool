@@ -13,7 +13,7 @@ format as one of the four built-in driver families:
 
 | Manifest key | Command-line contract | Output contract |
 |---|---|---|
-| `cbs` | CBSH2-RTC style: `-m <map> -a <scen> -o <csv> -k <n> -t <s> --seed=... --hexGrid=... --gridConfig=... --outputPaths=<txt>` (plus tuning flags) | results CSV + arrow paths file ([file-formats.md](file-formats.md)) |
+| `cbs` | CBSH2-RTC style: `-m <map> -a <scen> -o <csv> -k <n> -t <s> --seed=... --outputPaths=<txt>` (plus tuning flags; `--hexGrid=true --gridConfig=<layout>` only on hexagonal grids, so the upstream solver runs unchanged on square grids) | results CSV + arrow paths file ([file-formats.md](file-formats.md)) |
 | `lacam`, `lacam2`, `lacam3` | LaCAM style: `-m <map> -i <scen> -N <n> -t <s> -s <seed> -v <lvl> -o <log>` (+ `-g square|hex -hc <layout>`) | `key=value` log with `solution=` section |
 
 Worked example — you built a CBSH2-RTC fork at `~/solvers/mycbs/cbs`:

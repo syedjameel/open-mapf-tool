@@ -123,7 +123,7 @@ source code and Linux x86_64 binaries:
 - **Pluggable solvers** via `solvers.yaml` (GUI editor included); a solver
   with a new output format needs a short parser class, a driver adapter and
   the registration of its key ([docs/extending.md](docs/extending.md)).
-- **Quality infrastructure**: 74 headless unit/integration test cases, CI
+- **Quality infrastructure**: 75 headless unit/integration test cases, CI
   matrix with sanitizer and format jobs, `install` target and TGZ/DEB
   packages via CPack.
 

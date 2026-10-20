@@ -1,4 +1,4 @@
-// Fixture-based tests for the solver output parsers (plan 5.1, priority 2).
+// Fixture-based tests for the solver output parsers.
 // Fixtures live in tests/fixtures/ and follow the exact formats produced by
 // CBSH2-RTC (results CSV) and LaCAM (key=value log with a solution section).
 #include <catch2/catch_test_macros.hpp>

@@ -2012,7 +2012,6 @@ void UIManager::cleanupTempFiles()
     // delete any file matching *_<digits>.{map,scen,csv,txt}, which could
     // silently destroy a user's own files (e.g. experiment_1.map). Cleanup
     // is now strictly limited to the tracked temp files above.
-    // (Plan defect A3)
 
     // Keep temp directory available (don't remove it)
     // This ensures CBS can always create files when needed

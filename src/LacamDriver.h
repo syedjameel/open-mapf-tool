@@ -42,7 +42,7 @@ struct LacamResults
 };
 
 // Base LaCAM driver: a thin adapter over the shared ExternalSolverDriver
-// engine (plan 3.4 item 2). Owns only the LaCAM-specific parts: the command
+// engine. Owns only the LaCAM-specific parts: the command
 // line (InvocationBuilder) and the output parsing (LacamOutputParser).
 class LacamDriverBase
 {

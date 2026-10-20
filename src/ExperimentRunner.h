@@ -25,7 +25,7 @@ struct RunnerProgress
     std::string lastStatus;
 };
 
-// Headless batch experiment runner (plan addendum M2.5). Executes the
+// Headless batch experiment runner. Executes the
 // expanded, shuffled run matrix with bounded parallel workers; appends one
 // results-CSV row per run (flushed immediately); enforces a hard per-run
 // timeout by killing the solver process; cleans per-run temp outputs after

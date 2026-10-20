@@ -1,5 +1,5 @@
 # OpenMAPF C++ style (LLVM base, 4-space indent to match the existing code).
-# Enforcement (reformat + CI format-check job) lands with the CI milestone.
+# Enforced by the CI format job (clang-format 18.1.8).
 BasedOnStyle: LLVM
 IndentWidth: 4
 ColumnLimit: 100

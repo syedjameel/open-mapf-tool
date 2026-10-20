@@ -1,6 +1,6 @@
 // Integration smoke tests: point the drivers at *fake solver* shell scripts
 // that emit canned output, exercising the whole generate -> execute -> parse
-// pipeline headless, without any real solver installed. (Plan 5.1)
+// pipeline headless, without any real solver installed.
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
@@ -75,6 +75,59 @@ TEST_CASE("CBSDriver runs a fake solver end to end", "[solver][integration]")
     CHECK(r.lowLevelNodes == 30);
     REQUIRE_FALSE(r.pathsFile.empty());
     CHECK(readFile(r.pathsFile).find("Agent 0: (0,0)->(1,1)") != std::string::npos);
+}
+
+TEST_CASE("CBSDriver passes grid options only on hexagonal grids", "[solver][integration]")
+{
+    // Plain CBSH2-RTC rejects unknown options, so square-grid runs must not send
+    // --hexGrid/--gridConfig or a default --cluster_heuristics.
+    TempDir argsDir;
+    const std::string argsFile = argsDir.path() + "/args.txt";
+    TempScript fakeCbs("#!/bin/sh\n"
+                       "echo \"$@\" > '" +
+                       argsFile +
+                       "'\n"
+                       "out=\"\"; paths=\"\"\n"
+                       "while [ $# -gt 0 ]; do\n"
+                       "  case \"$1\" in\n"
+                       "    -o) out=\"$2\"; shift 2;;\n"
+                       "    --outputPaths=*) paths=\"${1#--outputPaths=}\"; shift;;\n"
+                       "    *) shift;;\n"
+                       "  esac\n"
+                       "done\n"
+                       "echo 'runtime,hl expanded,hl generated,ll expanded,ll generated,solution "
+                       "cost' > \"$out\"\n"
+                       "echo '0.5,10,20,30,40,7' >> \"$out\"\n"
+                       "printf 'Agent 0: (0,0)->(1,1)\\nAgent 1: (1,0)->(2,2)\\n' > \"$paths\"\n");
+
+    auto runWith = [&](const CBSParameters& params) {
+        TempDir tempDir;
+        Environment env;
+        CBSDriver driver;
+        driver.setExecutablePath(fakeCbs.path());
+        std::promise<CBSResults> promise;
+        auto fut = promise.get_future();
+        driver.solveAsync(
+            twoAgents(), env, params, "itest",
+            [&promise](const CBSResults& r) { promise.set_value(r); }, tempDir.path());
+        REQUIRE(fut.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
+        CHECK(fut.get().solutionFound);
+        return readFile(argsFile);
+    };
+
+    const std::string square = runWith(CBSParameters{});
+    CHECK(square.find("--hexGrid") == std::string::npos);
+    CHECK(square.find("--gridConfig") == std::string::npos);
+    CHECK(square.find("--cluster_heuristics") == std::string::npos);
+
+    CBSParameters hex;
+    hex.hexGrid = true;
+    hex.gridConfig = "evenq";
+    hex.clusterHeuristic = "CHBP";
+    const std::string hexArgs = runWith(hex);
+    CHECK(hexArgs.find("--hexGrid=true") != std::string::npos);
+    CHECK(hexArgs.find("--gridConfig=evenq") != std::string::npos);
+    CHECK(hexArgs.find("--cluster_heuristics=CHBP") != std::string::npos);
 }
 
 TEST_CASE("LacamDriver runs a fake solver end to end", "[solver][integration]")

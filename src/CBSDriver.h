@@ -48,7 +48,7 @@ struct CBSResults
 };
 
 // CBS driver: a thin adapter over the shared ExternalSolverDriver engine
-// (plan 3.4 item 2). Owns only the CBS-specific parts: the command line
+//. Owns only the CBS-specific parts: the command line
 // (InvocationBuilder) and the results-CSV parsing (Cbsh2CsvParser).
 class CBSDriver
 {

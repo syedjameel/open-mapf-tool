@@ -34,7 +34,6 @@ void CBSDriver::solveAsync(const std::vector<Agent>& agents, const Environment& 
             "-t",
             std::to_string(params.cutoffTime),
             "--heuristics=" + params.heuristic,
-            "--cluster_heuristics=" + params.clusterHeuristic,
             "--bypass=" + boolArg(params.bypass),
             "--rectangleReasoning=" + params.rectangleReasoning,
             "--corridorReasoning=" + params.corridorReasoning,
@@ -48,10 +47,17 @@ void CBSDriver::solveAsync(const std::vector<Agent>& agents, const Environment& 
             "--stats=" + boolArg(params.stats),
             "--restart=" + std::to_string(params.restart),
             "--seed=" + std::to_string(params.seed),
-            "--hexGrid=" + boolArg(params.hexGrid),
-            "--gridConfig=" + params.gridConfig,
-            "--outputPaths=" + inv.pathsFile,
         };
+        // Options that plain CBSH2-RTC does not know are passed only when needed, so the
+        // upstream solver runs unchanged on square grids.
+        if (params.clusterHeuristic != "N") {
+            inv.argv.push_back("--cluster_heuristics=" + params.clusterHeuristic);
+        }
+        if (params.hexGrid) {
+            inv.argv.push_back("--hexGrid=true");
+            inv.argv.push_back("--gridConfig=" + params.gridConfig);
+        }
+        inv.argv.push_back("--outputPaths=" + inv.pathsFile);
         return inv;
     };
 

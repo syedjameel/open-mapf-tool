@@ -23,7 +23,7 @@ struct SolverOutcome
 };
 
 // Parses one solver's output files after its process exits successfully.
-// Implementations are small and format-specific (plan 3.4: the documented
+// Implementations are small and format-specific (the documented
 // extension point for solvers with exotic output).
 class ISolutionParser
 {

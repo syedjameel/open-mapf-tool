@@ -9,7 +9,7 @@ struct subprocess_s; // from vendored subprocess.h (implementation file only)
 // Executes an external program directly (fork/exec — never through a shell,
 // so arguments with spaces or shell metacharacters are safe), captures its
 // stdout/stderr, and supports killing the child from another thread.
-// Replaces the previous std::system() usage (plan defect A5: shell
+// Replaces the previous std::system() usage (shell
 // injection/space breakage, and cancel() that could not stop the child).
 class ProcessRunner
 {

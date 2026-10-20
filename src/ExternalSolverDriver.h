@@ -12,7 +12,7 @@
 #include "ProcessRunner.h"
 #include "Types.h"
 
-// One driver engine for every external solver (plan 3.4 item 2). Owns the
+// One driver engine for every external solver. Owns the
 // full run lifecycle previously duplicated across CBSDriver and
 // LacamDriverBase: worker thread, cancellation (killing the child process),
 // per-run map/scen generation, temp-file registration, argv execution via
