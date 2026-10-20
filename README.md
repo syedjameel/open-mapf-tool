@@ -20,10 +20,11 @@ together per-paper scripts:
    place agent start/goal pairs, load MovingAI benchmark scenarios, run
    solvers, and animate the solutions with pan/zoom and a scrub timeline.
 3. **Pluggable external solvers** via a YAML manifest — no recompilation to
-   point the tool at a solver binary. Reference integrations: CBSH2-RTC
-   (with hex extensions) and LaCAM 1/2/3.
+   point the tool at a solver binary. Reference integrations: the CBSH2-RTC
+   and LaCAM 1/2/3 command lines; hexagonal LaCAM, LaCAM2 and LaCAM3 are
+   archived on Zenodo (see below).
 
-Uniquely, all four hexagonal offset layouts (odd-r, even-r, odd-q, even-q)
+All four hexagonal offset layouts (odd-r, even-r, odd-q, even-q)
 are supported end to end: editing, scenario generation, solving, and
 animation.
 
@@ -90,10 +91,12 @@ scripts/get-solvers.sh          # clones + builds solvers, writes solvers.yaml
 ```
 
 or point the tool at existing binaries in the GUI *Solvers* tab / in
-`solvers.yaml`. Note: the hexagonal solver forks (CBSH2-RTC-CHBP-HEX,
-hexagonal LaCAM) are being prepared for publication; until then override the
-repository URLs via `OPENMAPF_CBS_REPO` / `OPENMAPF_LACAM_REPO` (see the
-script's `--help`).
+`solvers.yaml`. The hexagonal LaCAM solvers are archived on Zenodo, with
+source code and Linux x86_64 binaries:
+
+- Hexagonal LaCAM: https://doi.org/10.5281/zenodo.23475645
+- Hexagonal LaCAM2: https://doi.org/10.5281/zenodo.23475834
+- Hexagonal LaCAM3: https://doi.org/10.5281/zenodo.23476002
 
 ## Features (all present today)
 

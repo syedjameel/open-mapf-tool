@@ -91,8 +91,7 @@ mean touching all of those sites.
 The planned refactor (a `GridGeometry` interface with
 `cellToWorld`/`worldToCell`/`cellOutline`/`neighbors`/`solverConfigTag`
 implementations per topology, replacing the flags with a single polymorphic
-object) is described in the project publication plan (§3.5) and scheduled
-after the current pre-submission milestones. If you need a new topology
+object) is planned for a later release. If you need a new topology
 sooner, open an issue — coordinating with that refactor will save you a
 rewrite. The coordinate-geometry unit tests in `tests/` are the safety net
 any such change must keep green.
