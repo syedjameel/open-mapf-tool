@@ -12,10 +12,7 @@ or a machine with a display.
    .23476002). For a new solver release: tag the repositories, deposit the
    new version on Zenodo, and update the tag in `scripts/get-solvers.sh`
    and the URLs and checksums in the `Dockerfile`.
-2. **[manual] Screenshots**: capture the three shots listed in the
-   `<!-- AUTHOR TODO -->` comment in README.md, commit to
-   `assets/screenshots/`, and replace the "Screenshots pending" line.
-3. **[manual] Enable GitHub Discussions** (README and CONTRIBUTING point
+2. **[manual] Enable GitHub Discussions** (README and CONTRIBUTING point
    to them as the questions channel).
 
 ## 2. Push and verify CI

@@ -98,7 +98,7 @@ source code and Linux x86_64 binaries:
 - Hexagonal LaCAM2: https://doi.org/10.5281/zenodo.23475834
 - Hexagonal LaCAM3: https://doi.org/10.5281/zenodo.23476002
 
-## Features (all present today)
+## Features
 
 - **Batch experiments, headless**: `openmapf run experiment.yaml` — matrix
   expansion, deterministic shuffled run order, bounded parallel workers,
@@ -115,26 +115,25 @@ source code and Linux x86_64 binaries:
   start/goal pairs, resize grids (up to 200×200), save map + scenario.
 - **Solver execution from the GUI**: CBSH2-RTC-family and LaCAM 1/2/3
   drivers with parameter dialogs, progress/cancel (really kills the child
-  process), and per-run statistics (cost, runtime, node expansions).
+  process), and per-run statistics (sum of costs and makespan with lower
+  bounds, runtime; node expansions for CBS).
 - **Animation**: smooth interpolation, speed control (0.1–5×), scrub
   timeline, per-agent colors and path trails, pan (right-drag or
   tap-drag) and wheel zoom.
-- **Pluggable solvers** via `solvers.yaml` (GUI editor included); adding a
-  solver with a new output format is a ~50-line parser class
-  ([docs/extending.md](docs/extending.md)).
-- **Quality infrastructure**: 68 headless unit/integration test cases, CI
+- **Pluggable solvers** via `solvers.yaml` (GUI editor included); a solver
+  with a new output format needs a short parser class, a driver adapter and
+  the registration of its key ([docs/extending.md](docs/extending.md)).
+- **Quality infrastructure**: 74 headless unit/integration test cases, CI
   matrix with sanitizer and format jobs, `install` target and TGZ/DEB
   packages via CPack.
 
 ## Screenshots
 
-<!-- AUTHOR TODO: capture on a machine with a display and commit to
-     assets/screenshots/ ; suggested shots:
-     1. hex grid with a solved LaCAM instance mid-animation (hex-solve.png)
-     2. square MovingAI map with the scenario-load dialog open (scen-load.png)
-     3. Experiments tab mid-run + the two generated plots (experiments.png)
--->
-*Screenshots pending — see `assets/screenshots/` after the next release.*
+![OpenMAPF GUI](assets/screenshots/gui-hex-experiments.png)
+
+Left: a LaCAM3 plan for 104 agents on the MovingAI map room-64-64-8, on the
+odd-r hexagonal layout. Right: the Experiments tab with live plots of the
+bundled benchmark experiment (96 runs).
 
 ## Documentation
 

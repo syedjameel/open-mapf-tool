@@ -83,7 +83,7 @@ First publication-ready release, superseding the pre-hardening prototype
   solvers; discovery via CLI flag → env var → XDG → exe-relative paths.
 - **CLI**: `--config`, `--version`, `--help`; `run` subcommand with
   `--jobs/--resume/--dry-run/--solvers` and documented exit codes.
-- **Quality infrastructure**: 68 headless test cases (642 assertions,
+- **Quality infrastructure**: 74 headless test cases (681 assertions,
   Catch2 via FetchContent) incl. fixture-based parser tests and
   fake-solver integration tests; GitHub Actions CI (Linux gcc/clang +
   best-effort macOS, integration steps, clang-format check, ASan/UBSan
