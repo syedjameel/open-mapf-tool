@@ -1879,7 +1879,7 @@ void UIManager::renderCBSProgressDialog()
         // Calculate elapsed time
         auto now = std::chrono::steady_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - m_cbsStartTime);
-        ImGui::Text("Elapsed time: %ld seconds", elapsed.count());
+        ImGui::Text("Elapsed time: %lld seconds", static_cast<long long>(elapsed.count()));
 
         // Spinner animation
         static float progress = 0.0f;

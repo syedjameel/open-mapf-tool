@@ -136,6 +136,10 @@ target_link_libraries(imgui PUBLIC
 # vertices into one window's draw list, which 16-bit indices cannot address
 # with the OpenGL 3.0 context we create (no ImGuiBackendFlags_RendererHasVtxOffset).
 target_compile_definitions(imgui PUBLIC "ImDrawIdx=unsigned int")
+# macOS still ships OpenGL but marks every call as deprecated; keep -Werror builds clean.
+if(APPLE)
+    target_compile_definitions(imgui PUBLIC GL_SILENCE_DEPRECATION)
+endif()
 
 # ---------------------------------------------------------------------------
 # openmapf: the GUI executable
