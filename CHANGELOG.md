@@ -37,6 +37,8 @@ uses [Semantic Versioning](https://semver.org/).
   narrower columns.
 
 ### Changed
+- The default build type is Release when none is given, so a plain
+  `cmake -B build` produces an optimized build.
 - `openmapf run` prints one progress line per run; the solver command lines
   and path-conversion notes moved behind `--verbose`.
 

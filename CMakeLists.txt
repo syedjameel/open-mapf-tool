@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 project(openmapf VERSION 0.1.0 LANGUAGES CXX)
 
+# Optimized build unless the user asks for another type: a plain `cmake -B build`
+# (as in the README) would otherwise compile without optimization.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release RelWithDebInfo MinSizeRel)
+endif()
+
 option(OPENMAPF_BUILD_TESTS "Build unit tests (fetches Catch2 via FetchContent)" ON)
 option(OPENMAPF_WERROR "Treat first-party compiler warnings as errors (CI)" OFF)
 option(OPENMAPF_SANITIZE "Build with AddressSanitizer + UndefinedBehaviorSanitizer" OFF)
