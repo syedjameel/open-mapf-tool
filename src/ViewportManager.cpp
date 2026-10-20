@@ -3,8 +3,7 @@
 
 ViewportManager::ViewportManager()
     : m_panOffset(0.0f, 0.0f), m_targetPanOffset(0.0f, 0.0f), m_zoom(1.0f), m_zoomTarget(1.0f),
-      m_lastClickTime(0.0f), m_doubleTapDetected(false), m_touchDragging(false),
-      m_touchDragStart(0.0f, 0.0f)
+      m_doubleTapDetected(false), m_touchDragging(false), m_touchDragStart(0.0f, 0.0f)
 {
 }
 

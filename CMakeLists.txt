@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 project(openmapf VERSION 0.1.0 LANGUAGES CXX)
 
+# C++17 for every target, vendored libraries included (Apple Clang defaults to
+# an older standard, which Dear ImGui does not compile with).
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Optimized build unless the user asks for another type: a plain `cmake -B build`
 # (as in the README) would otherwise compile without optimization.
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)

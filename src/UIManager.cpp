@@ -149,7 +149,7 @@ void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_po
                                    getColorForAgent(i), 0.0f, 0, 2.0f * zoom);
 
                 // Draw agent ID on the goal marker with size proportional to marker size
-                char buf[16];
+                char buf[24]; // fits any size_t
                 snprintf(buf, sizeof(buf), "%zu", i);
 
                 // Scale text to fit within the marker (about 60% of size)
@@ -283,7 +283,7 @@ void UIManager::renderSceneWindow(ImDrawList* draw_list, const ImVec2& canvas_po
             draw_list->AddCircleFilled(interp_pos, agent_radius, getColorForAgent(i));
 
             // Draw agent ID text centered in the circle with size proportional to agent radius
-            char buf[16];
+            char buf[24]; // fits any size_t
             snprintf(buf, sizeof(buf), "%zu", i);
 
             // Scale text to fit within the circle (about 60% of diameter)

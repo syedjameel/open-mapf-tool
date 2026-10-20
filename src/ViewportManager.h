@@ -28,7 +28,6 @@ private:
     float m_zoomTarget;
 
     // Touchpad tap and drag support
-    float m_lastClickTime;
     bool m_doubleTapDetected; // Now used for single-tap detection
     bool m_touchDragging;
     ImVec2 m_touchDragStart;
