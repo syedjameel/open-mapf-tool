@@ -6,18 +6,12 @@ or a machine with a display.
 
 ## 1. Pre-flight
 
-1. **[manual] Publish the hexagonal solver forks** so
-   `scripts/get-solvers.sh` works for strangers:
-   - `CBSH2-RTC-CHBP-HEX` — must be published under **GPL-2.0-or-later**
-     (it derives from bshen95/CBSH2-RTC-CHBP, which is GPL-2.0-or-later)
-     with a notice describing the hex modifications. Note that the
-     original Jiaoyang-Li/CBSH2-RTC code carries a USC research-only
-     license — keep both notices, as upstream CHBP does.
-   - `hexagonal_lacam` (lacam/lacam2/lacam3 forks) — MIT, matching
-     upstream Kei18 repositories, with a modification notice.
-   - If the published names/URLs differ from the defaults in
-     `scripts/get-solvers.sh` (`OPENMAPF_CBS_REPO`, `OPENMAPF_LACAM_REPO`
-     defaults), update the script and `README.md`.
+1. **Hexagonal LaCAM solvers.** The three solvers are public
+   (`github.com/syedjameel/hexagonal-lacam`, `-lacam2`, `-lacam3`, tag
+   `v1.0.0`) and archived on Zenodo (10.5281/zenodo.23475645, .23475834,
+   .23476002). For a new solver release: tag the repositories, deposit the
+   new version on Zenodo, and update the tag in `scripts/get-solvers.sh`
+   and the URLs and checksums in the `Dockerfile`.
 2. **[manual] Screenshots**: capture the three shots listed in the
    `<!-- AUTHOR TODO -->` comment in README.md, commit to
    `assets/screenshots/`, and replace the "Screenshots pending" line.

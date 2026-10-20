@@ -14,9 +14,11 @@ docker build -t openmapf .
 ```
 
 The build compiles OpenMAPF, runs the full test suite (the build fails if a
-test fails), and downloads the solver archive from the project's GitHub
-release. To build offline, put `openmapf-hex-lacam-linux-x86_64.tar.gz` into
-`docker/solvers/` first. To build without solvers (only the smoke experiment
+test fails), and downloads the three hexagonal LaCAM binaries from their
+Zenodo records (10.5281/zenodo.23475645, .23475834, .23476002), checking each
+against its published SHA-256 sum. To build offline, put a bundle
+`openmapf-hex-lacam-linux-x86_64.tar.gz` (folders `openmapf-hex-lacam/lacam1`,
+`lacam2`, `lacam3`, each with `main`) into `docker/solvers/` first. To build without solvers (only the smoke experiment
 then works), pass `--build-arg WITH_SOLVERS=0`.
 
 ## Reproduce the benchmark experiment

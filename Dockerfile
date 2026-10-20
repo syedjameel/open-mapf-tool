@@ -34,13 +34,14 @@ RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/o
     && cmake --install build
 
 # ---------------------------------------------------------------------------
-# solvers: unpack the prebuilt hexagonal LaCAM binaries
+# solvers: the prebuilt hexagonal LaCAM binaries, from their Zenodo archives
+# (10.5281/zenodo.23475645, .23475834, .23476002), checked against the
+# published SHA-256 sums. A local bundle in docker/solvers/ takes precedence.
 # ---------------------------------------------------------------------------
 FROM ubuntu:24.04 AS solvers
 
 ARG WITH_SOLVERS=1
-ARG HEX_LACAM_URL=https://github.com/syedjameel/open-mapf-tool/releases/latest/download/openmapf-hex-lacam-linux-x86_64.tar.gz
-ARG HEX_LACAM_SHA256=
+ARG ZENODO=https://zenodo.org/records
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -48,15 +49,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 COPY docker/solvers/ /tmp/solvers/
 RUN mkdir -p /opt/openmapf-hex-lacam \
     && if [ "$WITH_SOLVERS" = "1" ]; then \
-        archive=/tmp/solvers/openmapf-hex-lacam-linux-x86_64.tar.gz; \
-        if [ ! -f "$archive" ]; then \
-            echo "fetching $HEX_LACAM_URL"; \
-            curl -fsSL -o "$archive" "$HEX_LACAM_URL"; \
+        bundle=/tmp/solvers/openmapf-hex-lacam-linux-x86_64.tar.gz; \
+        if [ -f "$bundle" ]; then \
+            tar -xzf "$bundle" -C /opt --no-same-owner; \
+        else \
+            set -e; \
+            for spec in \
+                "lacam1 hexagonal-lacam 23475645 406e0dd36f37adc09d8bddc33928e7e6d155bcc6ea451ab43ccc7d50c2481095" \
+                "lacam2 hexagonal-lacam2 23475834 249657217f0519991eb463e2a3b5137cc478a9fbbb43a19f4b1330f9ffdff550" \
+                "lacam3 hexagonal-lacam3 23476002 15a29592a2d3b95dd9ac34ae8733c31a6a4ec111668027c8e0a4187d022a914d"; do \
+                set -- $spec; \
+                archive="/tmp/solvers/$2-linux-x86_64.tar.gz"; \
+                echo "fetching $ZENODO/$3/files/$2-linux-x86_64.tar.gz"; \
+                curl -fsSL -o "$archive" "$ZENODO/$3/files/$2-linux-x86_64.tar.gz?download=1"; \
+                echo "$4  $archive" | sha256sum -c -; \
+                mkdir -p "/opt/openmapf-hex-lacam/$1"; \
+                tar -xzf "$archive" -C "/opt/openmapf-hex-lacam/$1" --strip-components=1 --no-same-owner; \
+            done; \
         fi; \
-        if [ -n "$HEX_LACAM_SHA256" ]; then \
-            echo "$HEX_LACAM_SHA256  $archive" | sha256sum -c -; \
-        fi; \
-        tar -xzf "$archive" -C /opt --no-same-owner; \
+        test -x /opt/openmapf-hex-lacam/lacam1/main; \
+        test -x /opt/openmapf-hex-lacam/lacam2/main; \
         test -x /opt/openmapf-hex-lacam/lacam3/main; \
     fi
 

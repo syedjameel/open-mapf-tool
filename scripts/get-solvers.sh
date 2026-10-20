@@ -6,18 +6,22 @@
 # licenses); this script clones them from their upstream repositories so you
 # accept the upstream terms directly.
 #
-# NOTE: the hexagonal solver forks (CBSH2-RTC-CHBP-HEX, hexagonal LaCAM) are
-# being prepared for publication by the OpenMAPF authors. Until they are
-# public, point this script at your own clones:
-#   OPENMAPF_CBS_REPO=<url> OPENMAPF_LACAM_REPO=<url> ./scripts/get-solvers.sh
+# Hexagonal LaCAM, LaCAM2 and LaCAM3 are cloned from
+# github.com/syedjameel/hexagonal-lacam{,2,3} at tag v1.0.0 (archived on
+# Zenodo: 10.5281/zenodo.23475645, .23475834, .23476002).
+# A CBS solver is not fetched by default. To add one, set OPENMAPF_CBS_REPO to
+# a CBSH2-RTC-compatible repository (it must accept --hexGrid/--gridConfig).
+# Override the LaCAM source with OPENMAPF_LACAM_BASE (URL prefix) and
+# OPENMAPF_LACAM_REF (tag or branch).
 #
 # Usage: scripts/get-solvers.sh [--dry-run] [--jobs N] [--manifest PATH]
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ALGO_DIR="${OPENMAPF_ALGO_DIR:-${REPO_ROOT}/algorithms}"
-CBS_REPO="${OPENMAPF_CBS_REPO:-https://github.com/syedjameel/CBSH2-RTC-CHBP-HEX.git}"
-LACAM_REPO="${OPENMAPF_LACAM_REPO:-https://github.com/syedjameel/hexagonal_lacam.git}"
+CBS_REPO="${OPENMAPF_CBS_REPO:-}"
+LACAM_BASE="${OPENMAPF_LACAM_BASE:-https://github.com/syedjameel/hexagonal-}"
+LACAM_REF="${OPENMAPF_LACAM_REF:-v1.0.0}"
 
 JOBS=4
 DRY_RUN=0
@@ -29,7 +33,7 @@ while [ $# -gt 0 ]; do
         --jobs) JOBS="$2"; shift 2 ;;
         --manifest) MANIFEST="$2"; shift 2 ;;
         -h|--help)
-            sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
+            sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'
             exit 0 ;;
         *) echo "Unknown argument: $1 (see --help)" >&2; exit 2 ;;
     esac
@@ -45,15 +49,21 @@ run() {
 }
 
 clone_or_update() {
-    local url="$1" dest="$2"
+    # clone_or_update URL DEST [REF]: shallow clone of REF (default branch if
+    # empty) with the third_party submodules the build needs.
+    local url="$1" dest="$2" ref="${3:-}"
     if [ -d "${dest}/.git" ]; then
-        run git -C "$dest" pull --ff-only
+        if [ -n "$ref" ]; then
+            run git -C "$dest" fetch --depth 1 origin tag "$ref"
+            run git -C "$dest" checkout -q "$ref"
+        else
+            run git -C "$dest" pull --ff-only
+        fi
+        run git -C "$dest" submodule update --init --depth 1 -- third_party
     else
-        if ! run git clone --depth 1 "$url" "$dest"; then
-            echo "WARNING: could not clone ${url}." >&2
-            echo "         If this repository is not public yet, set the" >&2
-            echo "         OPENMAPF_CBS_REPO / OPENMAPF_LACAM_REPO variables" >&2
-            echo "         to a reachable clone and re-run." >&2
+        if ! run git clone --depth 1 ${ref:+--branch "$ref"} --recurse-submodules=third_party \
+            --shallow-submodules "$url" "$dest"; then
+            echo "WARNING: could not clone ${url}${ref:+ at ${ref}}." >&2
             return 1
         fi
     fi
@@ -66,32 +76,29 @@ LACAM3_EXE=""
 
 run mkdir -p "$ALGO_DIR"
 
-# --- CBSH2-RTC-CHBP-HEX ----------------------------------------------------
-CBS_DIR="${ALGO_DIR}/CBSH2-RTC-CHBP-HEX"
-if clone_or_update "$CBS_REPO" "$CBS_DIR"; then
-    run cmake -S "$CBS_DIR" -B "$CBS_DIR" -DCMAKE_BUILD_TYPE=Release
-    run cmake --build "$CBS_DIR" -j "$JOBS"
-    CBS_EXE="${CBS_DIR}/cbs"
+# --- optional CBS (only when OPENMAPF_CBS_REPO is set) -----------------------
+if [ -n "$CBS_REPO" ]; then
+    CBS_DIR="${ALGO_DIR}/cbs"
+    if clone_or_update "$CBS_REPO" "$CBS_DIR"; then
+        run cmake -S "$CBS_DIR" -B "$CBS_DIR" -DCMAKE_BUILD_TYPE=Release
+        run cmake --build "$CBS_DIR" -j "$JOBS"
+        CBS_EXE="${CBS_DIR}/cbs"
+    fi
 fi
 
 # --- hexagonal LaCAM 1/2/3 ---------------------------------------------------
-LACAM_DIR="${ALGO_DIR}/hexagonal_lacam"
-if clone_or_update "$LACAM_REPO" "$LACAM_DIR"; then
-    for variant in lacam lacam2 lacam3; do
-        vdir="${LACAM_DIR}/${variant}"
-        if [ "$DRY_RUN" -eq 1 ] || [ -d "$vdir" ]; then
-            run cmake -S "$vdir" -B "${vdir}/build" -DCMAKE_BUILD_TYPE=Release
-            run cmake --build "${vdir}/build" -j "$JOBS"
-            case "$variant" in
-                lacam)  LACAM_EXE="${vdir}/build/main" ;;
-                lacam2) LACAM2_EXE="${vdir}/build/main" ;;
-                lacam3) LACAM3_EXE="${vdir}/build/main" ;;
-            esac
-        else
-            echo "WARNING: ${vdir} not found in the LaCAM repository; skipping." >&2
-        fi
-    done
-fi
+for suffix in lacam lacam2 lacam3; do
+    vdir="${ALGO_DIR}/hexagonal-${suffix}"
+    if clone_or_update "${LACAM_BASE}${suffix}.git" "$vdir" "$LACAM_REF"; then
+        run cmake -S "$vdir" -B "${vdir}/build" -DCMAKE_BUILD_TYPE=Release
+        run cmake --build "${vdir}/build" -j "$JOBS" --target main
+        case "$suffix" in
+            lacam)  LACAM_EXE="${vdir}/build/main" ;;
+            lacam2) LACAM2_EXE="${vdir}/build/main" ;;
+            lacam3) LACAM3_EXE="${vdir}/build/main" ;;
+        esac
+    fi
+done
 
 # --- write the manifest ------------------------------------------------------
 emit_manifest() {
@@ -99,19 +106,19 @@ emit_manifest() {
 # Generated by scripts/get-solvers.sh on $(date -u +%Y-%m-%dT%H:%M:%SZ)
 solvers:
   - key: cbs
-    name: CBSH2-RTC-CHBP-HEX
+    name: CBSH2-RTC
     executable: "${CBS_EXE}"
     grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]
   - key: lacam
-    name: LaCAM (hex fork)
+    name: LaCAM (hex)
     executable: "${LACAM_EXE}"
     grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]
   - key: lacam2
-    name: LaCAM2 (hex fork)
+    name: LaCAM2 (hex)
     executable: "${LACAM2_EXE}"
     grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]
   - key: lacam3
-    name: LaCAM3 (hex fork)
+    name: LaCAM3 (hex)
     executable: "${LACAM3_EXE}"
     grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]
 EOF
@@ -135,5 +142,9 @@ if [ "$DRY_RUN" -eq 0 ]; then
             status=1
         fi
     done
+    if [ -z "$LACAM_EXE$LACAM2_EXE$LACAM3_EXE" ]; then
+        echo "ERROR: no LaCAM solver was built (see the warnings above)." >&2
+        status=1
+    fi
     exit "$status"
 fi
