@@ -191,7 +191,7 @@ with a warning (never a crash). A legacy `solvers:` map
 ```yaml
 solvers:
   - key: cbs                     # stable id: cbs, lacam, lacam2, lacam3
-    name: CBSH2-RTC-CHBP-HEX     # display name
+    name: CBSH2-RTC              # display name
     executable: /path/to/cbs     # empty = not configured; relative paths
                                  # resolve against this file's directory
     grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]

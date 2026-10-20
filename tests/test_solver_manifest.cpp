@@ -39,7 +39,7 @@ TEST_CASE("loadFromFile merges into defaults", "[manifest]")
     REQUIRE(m.loadFromFile(file.path()));
 
     CHECK(m.executableFor("cbs") == "/opt/solvers/cbs");
-    CHECK(m.find("cbs")->name == "CBSH2-RTC-CHBP-HEX"); // untouched fields kept
+    CHECK(m.find("cbs")->name == "CBSH2-RTC"); // untouched fields kept
 
     const SolverEntry* custom = m.find("my-custom-solver");
     REQUIRE(custom != nullptr); // unknown keys are appended

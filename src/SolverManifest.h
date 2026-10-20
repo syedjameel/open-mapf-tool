@@ -21,7 +21,7 @@ struct SolverEntry
 // File schema:
 //   solvers:
 //     - key: cbs
-//       name: CBSH2-RTC-CHBP-HEX
+//       name: CBSH2-RTC
 //       executable: /path/to/cbs
 //       grids: [square, hex-oddr, hex-evenr, hex-oddq, hex-evenq]
 class SolverManifest

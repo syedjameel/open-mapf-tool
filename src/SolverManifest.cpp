@@ -15,7 +15,7 @@ SolverManifest SolverManifest::withDefaults()
 
     SolverManifest m;
     m.m_entries = {
-        {"cbs", "CBSH2-RTC-CHBP-HEX", "", allGrids},
+        {"cbs", "CBSH2-RTC", "", allGrids},
         {"lacam", "LaCAM (hex fork)", "", allGrids},
         {"lacam2", "LaCAM2 (hex fork)", "", allGrids},
         {"lacam3", "LaCAM3 (hex fork)", "", allGrids},

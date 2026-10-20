@@ -49,10 +49,7 @@ to anyone redistributing the solvers themselves:
   educational, research, and non-profit purposes with the notice retained;
   commercial use requires permission from the USC Stevens Center for
   Innovation. **Not an OSI-approved open-source license.**
-- CBSH2-RTC-CHBP (Bojie Shen et al.) — GPL-2.0-or-later. The hexagonal
-  fork (CBSH2-RTC-CHBP-HEX), being derived from it, must be published
-  under GPL-2.0-or-later with a modification notice (see
-  docs/RELEASING.md).
+- CBSH2-RTC-CHBP (Bojie Shen et al.) — GPL-2.0-or-later.
 
 ---
 
