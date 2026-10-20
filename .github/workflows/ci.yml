@@ -24,13 +24,11 @@ jobs:
             cc: clang
             cxx: clang++
             experimental: false
-          # macOS is best-effort until verified on real hardware; promote to
-          # required once the first runs are green.
           - name: macos-14
             os: macos-14
             cc: clang
             cxx: clang++
-            experimental: true
+            experimental: false
     env:
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
